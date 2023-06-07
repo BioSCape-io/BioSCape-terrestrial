@@ -1,0 +1,23 @@
+[
+  {
+    "objectID": "index.html#plot-summary",
+    "href": "index.html#plot-summary",
+    "title": "BioSCape Terrestrial Data Summary",
+    "section": "Plot Summary",
+    "text": "Plot Summary\n\n\n\n\n\nDate\nSiteCode_Plot\nSpecies_Count\n\n\n\n\n2023-05-04\ncederberg_242\n16\n\n\n2023-05-04\ncederberg_289\n17\n\n\n2023-05-06\ncederberg_243\n14\n\n\n2023-05-07\ncederberg_169\n15\n\n\n2023-05-09\ncederberg_230\n21\n\n\n2023-05-09\ncederberg_290\n9\n\n\n2023-05-10\ncederberg_240\n15\n\n\n2023-05-16\ncapepoint_97\n26\n\n\n2023-05-19\ncapepoint_77\n19\n\n\n2023-05-19\ncapepoint_85\n6\n\n\n2023-05-23\ncapepoint_266\n11\n\n\n2023-05-23\ncapepoint_76\n11"
+  },
+  {
+    "objectID": "index.html#rarefaction-curves",
+    "href": "index.html#rarefaction-curves",
+    "title": "BioSCape Terrestrial Data Summary",
+    "section": "Rarefaction Curves",
+    "text": "Rarefaction Curves\n\n\n\n\n\n\n\n\n\nlibrary(piggyback)\n\n#pb_upload(data)"
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this site\n\n1 + 1\n\n[1] 2"
+  }
+]
