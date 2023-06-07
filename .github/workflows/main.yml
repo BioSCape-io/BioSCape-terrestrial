@@ -17,14 +17,10 @@ jobs:
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
       
-      # add software dependencies here
-
-      # To publish to Netlify, RStudio Connect, or GitHub Pages, uncomment
-      # the appropriate block below
       - name: Install R Package Dependencies
         run: |-
           Rscript -e "install.packages('questionr')"
-          Rscript -e "questionr::qscan(list.files(pattern='*.qmd',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
+          #  Rscript -e "questionr::qscan(list.files(pattern='*.qmd',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
 
       - name: Publish to GitHub Pages (and render)
         uses: quarto-dev/quarto-actions/publish@v2
