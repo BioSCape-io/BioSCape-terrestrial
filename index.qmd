@@ -2,6 +2,10 @@
 title: "BioSCape Terrestrial Data Summary"
 ---
 
+## Overview
+
+The following page summarizes the terrestrial vegetation data collected by BioSCape so far.
+
 ```{r,echo=F, message=FALSE}
 
 library(googlesheets4)
@@ -35,7 +39,6 @@ data <- data_downloaded %>%
   mutate("SiteCode_Plot"=paste(SiteCode,Plot,sep="_"),
          Plot=as.numeric(Plot)) %>% 
   left_join(sites,by=c("SiteCode_Plot_Quadrant","SiteCode","SiteCode_Plot","Plot","Quadrant") )
-
 ```
 
 ## Plot Summary
@@ -82,8 +85,12 @@ lines(rare_shannon[,3],lty=2)
 
 ```
 
-```{r}
+```{r,echo=F}
+
+# upload summary data to release
+
 library(piggyback)
 
-#pb_upload(data)
+readr::write_csv(data,"bioscape_vegetation_data.csv")
+pb_upload("bioscape_vegetation_data.csv", "bioscape-io/bioscape-vegetation")
 ```

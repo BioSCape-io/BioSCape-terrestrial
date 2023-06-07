@@ -2,7 +2,7 @@ project:
   type: website
 
 website:
-  title: "terrestrial"
+  title: "BiOSCape Terrestrial Data"
   navbar:
     left:
       - href: index.qmd
