@@ -1,0 +1,89 @@
+---
+title: "BioSCape Terrestrial Data Summary"
+---
+
+```{r,echo=F, message=FALSE}
+
+library(googlesheets4)
+library(tidyverse)
+library(vegan)
+require(Rarefy)
+
+# Define the URL or key of the Google Sheet
+sheet_url <- "https://docs.google.com/spreadsheets/d/19RdI9SdqOx8zn6XBxywgUNgmAHJ6JatOjtTEK-VAcQE/edit#gid=266439266"
+
+# Authenticate and access the Google Sheet
+gs4_auth(email = "adamw@buffalo.edu")#, token = "your_token")
+sheet <- gs4_get(sheet_url)
+
+# Filter only plot tabs
+plot_sheets <- grep("_plot",sheet_names(sheet),value=T,ignore.case = T)
+
+
+# site data
+sites=read_sheet(sheet,"SiteData") 
+
+
+# Download data from the specified tabs as data frames
+data_downloaded <- lapply(plot_sheets, function(tab) {
+read_sheet(sheet,tab)
+})
+
+data <- data_downloaded %>% 
+  bind_rows() %>% 
+  separate(SiteCode_Plot_Quadrant,into=c("SiteCode","Plot","Quadrant"),sep="_",remove = F) %>% 
+  mutate("SiteCode_Plot"=paste(SiteCode,Plot,sep="_"),
+         Plot=as.numeric(Plot)) %>% 
+  left_join(sites,by=c("SiteCode_Plot_Quadrant","SiteCode","SiteCode_Plot","Plot","Quadrant") )
+
+```
+
+## Plot Summary
+
+```{r,echo=F, message=F}
+
+data %>% 
+  group_by(Date, SiteCode_Plot) %>% 
+  summarize(Species_Count=length(unique(Genus_Species_combo))) %>% 
+  na.omit() %>% 
+  arrange(Date) %>% 
+  knitr::kable()
+```
+
+## Rarefaction Curves
+
+```{r, echo=F}
+plot_species <- 
+  data %>% 
+  pivot_wider(id_cols=c("SiteCode_Plot"),
+              names_from="Genus_Species_combo",
+#              values_from = "PercentCoverAlive",
+              values_from = "AbundanceAlive_count",
+              values_fn = sum, values_fill = 0)
+
+#raremax <- min(rowSums(plot_species[-1,-1],na.rm=T))
+#raremax = 3
+#rarefy(plot_species[-1,-1], sample = raremax, se = TRUE, MARGIN = 1)
+#rarecurve(plot_species[-1,-1], sample = raremax, se = TRUE, MARGIN = 1)
+
+```
+
+```{r, echo=F}
+a<-list(NA,'Shannon')
+names(a)<-c('comm','method')
+
+rare_shannon<-rare_alpha(plot_species[-1,-1],
+                         method="HCDT",random=999,
+                         args=a,mean=TRUE)
+
+plot(rare_shannon[,1],ylab="Shannon index",xlab="Number of sampling units",type="l", ylim=range(rare_shannon,na.rm=TRUE))
+lines(rare_shannon[,2],lty=2)
+lines(rare_shannon[,3],lty=2)
+
+```
+
+```{r}
+library(piggyback)
+
+#pb_upload(data)
+```
