@@ -21,6 +21,10 @@ jobs:
       - name: Install R Package Dependencies
         run: |-
           Rscript -e "install.packages('questionr')"
+          Rscript -e "install.packages('curl')"
+          Rscript -e "install.packages('gargle')"
+          Rscript -e "install.packages('googledrive')"
+          Rscript -e "install.packages('httr')"
           Rscript -e "install.packages('googlesheets4')"
           Rscript -e "install.packages('rmarkdown')"
           Rscript -e "questionr::qscan(list.files(pattern='*.qmd',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
