@@ -20,6 +20,7 @@ jobs:
         uses: quarto-dev/quarto-actions/setup@v2
       - name: Install R Package Dependencies
         run: |-
+          apt-get install  libcurl4-openssl-dev
           Rscript -e "install.packages('questionr')"
           Rscript -e "install.packages('curl')"
           Rscript -e "install.packages('gargle')"
