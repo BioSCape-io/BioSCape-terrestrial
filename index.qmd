@@ -6,7 +6,7 @@ title: "BioSCape Terrestrial Data Summary"
 
 The following page summarizes the terrestrial vegetation data collected by BioSCape. This page was last updated `r date()`.
 
-```{r,echo=F, message=FALSE,results='hide', cache=T}
+```{r,echo=F, message=FALSE,results='hide', warning=F, cache=T}
 
 library(googlesheets4)
 library(tidyverse)
@@ -143,8 +143,6 @@ library(vegan)
 
 sp1 <- specaccum(plot_species[-1,-1])
 sp2 <- specaccum(plot_species[-1,-1], "random")
-sp2
-summary(sp2)
 plot(sp1, ci.type="poly", col="blue", lwd=2, ci.lty=0, ci.col="lightblue",ylab="Species Richness")
 boxplot(sp2, col="yellow", add=TRUE, pch="+")
 ```
