@@ -14,14 +14,17 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v3
-      - name: Install R Package Dependencies
+      - name: install dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages:
+            any::httr
+            any::tidyverse
+            any::googlesheets4
+            any::rmarkdown
+      - name: Install others not mentioned
         run: |-
-          Rscript -e "install.packages('tidyverse')"
-          Rscript -e "install.packages('httr')"
-          Rscript -e "install.packages('googlesheets4')"
-          Rscript -e "install.packages('rmarkdown')"
           Rscript -e "questionr::qscan(list.files(pattern='*.qmd',recursive=T), load = TRUE, detail = FALSE)" # this scans all scripts and installs any needed packages
-
     permissions:
       contents: write
     steps:

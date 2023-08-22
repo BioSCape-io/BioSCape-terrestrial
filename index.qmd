@@ -6,7 +6,7 @@ title: "BioSCape Terrestrial Data Summary"
 
 The following page summarizes the terrestrial vegetation data collected by BioSCape. This page was last updated `r date()`.
 
-```{r,echo=F, message=FALSE,results='hide', warning=F, cache=T}
+```{r,echo=F, message=FALSE,results='hide', warning=F}
 
 library(googlesheets4)
 library(tidyverse)
