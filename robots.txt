@@ -1,0 +1,1 @@
+Sitemap: https://BioSCape-io.github.io/BioSCape-terrestrial/sitemap.xml

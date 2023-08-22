@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>terrestrial - BioSCape Terrestrial Data Summary</title>
+<title>BiOSCape Terrestrial Data - BioSCape Terrestrial Data Summary</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -20,69 +20,6 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1.6em;
   vertical-align: middle;
 }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-    color: #aaaaaa;
-  }
-pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
-code span.al { color: #ff0000; font-weight: bold; } /* Alert */
-code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
-code span.at { color: #7d9029; } /* Attribute */
-code span.bn { color: #40a070; } /* BaseN */
-code span.bu { color: #008000; } /* BuiltIn */
-code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
-code span.ch { color: #4070a0; } /* Char */
-code span.cn { color: #880000; } /* Constant */
-code span.co { color: #60a0b0; font-style: italic; } /* Comment */
-code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
-code span.do { color: #ba2121; font-style: italic; } /* Documentation */
-code span.dt { color: #902000; } /* DataType */
-code span.dv { color: #40a070; } /* DecVal */
-code span.er { color: #ff0000; font-weight: bold; } /* Error */
-code span.ex { } /* Extension */
-code span.fl { color: #40a070; } /* Float */
-code span.fu { color: #06287e; } /* Function */
-code span.im { color: #008000; font-weight: bold; } /* Import */
-code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
-code span.kw { color: #007020; font-weight: bold; } /* Keyword */
-code span.op { color: #666666; } /* Operator */
-code span.ot { color: #007020; } /* Other */
-code span.pp { color: #bc7a00; } /* Preprocessor */
-code span.sc { color: #4070a0; } /* SpecialChar */
-code span.ss { color: #bb6688; } /* SpecialString */
-code span.st { color: #4070a0; } /* String */
-code span.va { color: #19177c; } /* Variable */
-code span.vs { color: #4070a0; } /* VerbatimString */
-code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
 </style>
 
 
@@ -121,6 +58,15 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     "search-submit-button-title": "Submit"
   }
 }</script>
+<script src="site_libs/htmlwidgets-1.5.4/htmlwidgets.js"></script>
+<script src="site_libs/jquery-1.12.4/jquery.min.js"></script>
+<link href="site_libs/leaflet-1.3.1/leaflet.css" rel="stylesheet">
+<script src="site_libs/leaflet-1.3.1/leaflet.js"></script>
+<link href="site_libs/leafletfix-1.0.0/leafletfix.css" rel="stylesheet">
+<script src="site_libs/proj4-2.6.2/proj4.min.js"></script>
+<script src="site_libs/Proj4Leaflet-1.0.1/proj4leaflet.js"></script>
+<link href="site_libs/rstudio_leaflet-1.3.1/rstudio_leaflet.css" rel="stylesheet">
+<script src="site_libs/leaflet-binding-2.1.1/leaflet.js"></script>
 
 
 <link rel="stylesheet" href="styles.css">
@@ -134,7 +80,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container">
     <a class="navbar-brand" href="./index.html">
-    <span class="navbar-title">terrestrial</span>
+    <span class="navbar-title">BiOSCape Terrestrial Data</span>
     </a>
   </div>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
@@ -165,8 +111,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#plot-summary" id="toc-plot-summary" class="nav-link active" data-scroll-target="#plot-summary">Plot Summary</a></li>
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">Overview</a></li>
+  <li><a href="#map-of-plot-locations-and-status" id="toc-map-of-plot-locations-and-status" class="nav-link" data-scroll-target="#map-of-plot-locations-and-status">Map of Plot Locations and Status</a></li>
+  <li><a href="#data-summary" id="toc-data-summary" class="nav-link" data-scroll-target="#data-summary">Data Summary</a>
+  <ul class="collapse">
   <li><a href="#rarefaction-curves" id="toc-rarefaction-curves" class="nav-link" data-scroll-target="#rarefaction-curves">Rarefaction Curves</a></li>
+  </ul></li>
+  <li><a href="#data-download" id="toc-data-download" class="nav-link" data-scroll-target="#data-download">Data Download</a></li>
   </ul>
 </nav>
     </div>
@@ -190,11 +141,34 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 </header>
 
+<section id="overview" class="level2">
+<h2 class="anchored" data-anchor-id="overview">Overview</h2>
+<p>The following page summarizes the terrestrial vegetation data collected by BioSCape. This page was last updated Tue Aug 22 12:16:06 2023.</p>
+<div class="cell" data-hash="index_cache/html/unnamed-chunk-1_616fbe89e6703618fa6c77df126bdd28">
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in rgl.init(initValue, onlyNULL): RGL: unable to open X11 display</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: 'rgl.init' failed, running with 'rgl.useNULL = TRUE'.</code></pre>
+</div>
+</div>
 <div class="cell">
 
 </div>
-<section id="plot-summary" class="level2">
-<h2 class="anchored" data-anchor-id="plot-summary">Plot Summary</h2>
+</section>
+<section id="map-of-plot-locations-and-status" class="level2">
+<h2 class="anchored" data-anchor-id="map-of-plot-locations-and-status">Map of Plot Locations and Status</h2>
+<p>Currently 24 have been sampled. They are shown in the map below.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="htmlwidget-46bc51e6d65a49600c0a" style="width:100%;height:464px;" class="leaflet html-widget"></div>
+<script type="application/json" data-for="htmlwidget-46bc51e6d65a49600c0a">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org\">OpenStreetMap<\/a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA<\/a>"}]},{"method":"addCircleMarkers","args":[[-34.8097194259026,-33.6392267558969,-33.4752441337697,-33.4693931819771,-33.4422650687212,-33.367907865418,-33.361745908562,-33.3628337672295,-33.3581340452856,-33.3545910305355,-33.3516875269995,-33.3422218265567,-33.3368242046542,-33.3439485400553,-33.3436134087899,-33.3321755279079,-33.3252742040352,-33.3185231347667,-33.3098061039003,-33.2845395059756,-33.2708700144912,-33.6359434727946,-34.7529951774825,-34.7190398517395,-34.4134535320493,-34.413264769259,-33.5698689923924,-33.5886495158556,-33.9899553825877,-33.7228297484624,-33.9347852007102,-33.9418721397163,-34.331745059249,-32.5292664249816,-32.5350905280065,-32.1483000931791,-32.1508344051923,-32.3455117008064,-32.2114817469904,-32.2518215283062,-32.5381872817494,-32.396218708131,-32.5347201630457,-32.4411970771677,-32.4312499971423,-32.2229411591682,-32.4361769348383,-32.1530315128344,-32.1392682755953,-32.9729894438648,-32.5271224563009,-32.4348038435541,-32.1367813218188,-32.1976968309848,-34.4737386190422,-34.4494524700385,-34.44289296647,-34.4053483276964,-34.4230718068403,-34.4094788982655,-34.3746349936026,-34.4610190254933,-34.4336314313099,-34.4729019598687,-33.9811134268651,-34.3536740850763,-33.7084443138772,-33.6964711698663,-33.7508196219816,-33.9227866605893,-33.9520833303395,-33.6141434305122,-33.5923268778099,-33.6230862920985,-33.5709226426281,-34.0021528522284,-33.97133042021,-33.7344086823393,-33.7180476308879,-33.2077559869469,-33.1620172653555,-34.2105119670935,-34.2896249511202,-34.075733658381,-34.2178422739919,-34.0883341390488,-34.3299201410761,-34.3230289396778,-34.3393542438795,-34.0702249029704,-34.3535947294888,-34.2871230006095,-34.3276344579437,-34.2952056740212,-34.2954958931228,-34.354064192546,-34.3231847625048,-34.3226941031501,-34.2246207326821,-34.3265635516064,-33.2225291505135,-33.2018416740442,-33.2260086602941,-33.2469971173353,-33.2300117804859,-33.1386188885095,-33.1630976257638,-33.1528926783999,-33.1258830489839,-33.1736573427043,-33.1491831930203,-32.6062499971266,-32.6156730849864,-33.9589814684784,-33.9945667632606,-33.1980104088742,-32.9965280338133,-33.6635703582624,-33.9186253724798,-33.6511266911757,-33.9597611023067,-33.9173021239872,-33.9540607772794,-32.3500514019596,-34.7464072153851,-34.7094768870097,-34.674729179764,-34.6092972321009,-34.5367121364283,-34.5421422107071,-34.4746676349642,-34.7467164816924,-34.6770833302745,-34.6645833302757,-34.7359267863265,-34.6354047531379,-33.9374008984105,-33.963784343322,-34.324583235356,-34.305755323641,-34.2932733856086,-34.260434257684,-34.2885146594787,-34.3118049240281,-34.2500032400541,-34.1826213828572,-34.2386962819004,-34.2074077592213,-34.1436178582255,-34.3209781975564,-34.1252198295451,-34.0795347987287,-34.0947628983574,-34.0888634315331,-34.0854903079211,-34.0816331202537,-33.9593702175233,-33.9641377715515,-33.9518526749272,-34.3739434710502,-34.408443019226,-34.4002911371208,-33.1170154731771,-33.1191024904761,-33.1133114166437,-33.1476076691655,-33.1131113739467,-33.1185447444447,-34.0650219529447,-33.9708974399949,-33.9547714175684,-33.9114315752868,-33.899764227683,-33.8458462906265,-33.8647775594223,-33.8797426790559,-33.8804374378613,-33.8834824459427,-33.9493834229505,-33.872470210194,-33.8992502094385,-33.9325702645016,-33.8647954398048,-33.8676241243844,-33.9088518845828,-33.8905058445005,-33.938043239967,-33.7204166234417,-33.6821521546785,-33.9484753609947,-33.9629282954112,-34.0727214644739,-33.9654827470577,-33.9899854393565,-33.9546437880145,-33.9711557734828,-33.9679352039447,-33.9460160244839,-33.916007355468,-33.9146583396371,-33.8307645788755,-34.0595682623815,-34.0714469034195,-33.978755187041,-33.9471312485528,-33.9859548603971,-34.0337588353037,-33.9606927718098,-33.9476864245727,-34.3247028347622,-34.3073595516476,-33.9378576408196,-33.9195982480147,-33.56529,-33.579201,-33.584776,-33.585436,-33.59212,-33.591671,-33.588553,-33.587994,-33.598675,-33.607402,-33.523834,-33.603123,-33.6582059623877,-33.662258,-33.757994905323,-33.7531198507536,-33.6779315915028,-33.4919288522653,-33.4854851693742,-33.479716626882,-33.4694468279683,-33.4661981643259,-33.4710742529418,-33.4704794714409,-33.4380098517485,-33.4436666221148,-33.4517936310773,-33.3658261694781,-33.3632243330373],[19.9536569802579,21.6516838101319,20.6776230863688,20.7188167873362,20.7631027859426,22.107943946366,22.0772900138699,22.0644415399132,22.0541819120002,22.0518487368924,22.0451594095854,22.0417423641297,22.0374107096232,22.0218853124173,22.0240359462854,22.0340235567041,22.0378311113321,22.0428901982491,22.0462707831255,22.0507129427705,22.0521816954439,21.6769816260018,19.6869991644931,19.7677459069571,20.6319227005476,20.5954154625985,18.3765776110985,18.3678864162632,18.955687618572,19.0923707500919,19.8965017078384,19.8898421275791,18.4630756283219,19.3412217959345,19.3317731958835,18.9405960655454,19.026184291502,19.0329429857868,19.1045980707641,19.1349532396041,19.3250578633722,19.0869526857084,19.3120584781843,19.1951378345082,19.1416699978793,19.1165487743256,19.1794496538295,19.0313393073017,19.0182927895657,19.0525141385998,19.3483189417082,19.1964091631676,18.9851126762119,19.0943785213406,20.5025743001321,20.4120041983271,20.4200579848569,20.5615634312983,20.4096774586804,20.5777052296389,20.5350351860464,20.4269242320999,20.4193887458078,20.458323723068,22.7140741877458,18.8375132762442,19.079018685908,19.076398244688,19.0656806196802,19.1583183998001,19.1755941123812,19.1008070581604,19.1234837761658,19.0990609578481,19.1367905604475,19.189135875724,19.289545659658,19.1212134614355,19.0700544248249,18.0942060149087,18.045678894835,19.1614774279678,19.1138077518438,19.0616498707456,19.1722708369357,19.056374499636,18.9959424210921,19.1038609379255,18.9857409613805,19.0684130334329,18.9035301385939,19.1105307620156,19.0295586394312,19.1172410984372,19.1230692794139,18.8842920369759,18.9644433611195,18.9716228646805,19.1733158316013,18.9658504606928,18.1076718333212,18.1405917870433,18.1391294378444,18.1939369399473,18.1635656842236,18.0995393696753,18.1277475389879,18.1211782412227,18.0609994907189,18.137586948789,18.0290328300397,18.2985518209419,18.2964622845511,21.2301785706705,22.7215474834847,18.0864562723941,19.0596816080386,21.640451109351,22.4174070340035,21.6420978589139,19.9022520143044,19.8842684529264,19.8936346935445,19.0149888740881,19.6542326387416,20.1079738504094,20.2293442472556,19.4214988925009,19.4127530800428,19.4075541430669,20.4859065403286,19.9774019142642,19.6408557180503,19.6480238780174,19.6644463240067,19.5836009450243,18.3940145162838,18.3860265274313,18.4453849210133,18.4377365937424,18.4282888860545,18.4542549109937,18.4476717923014,18.4293797480051,18.4128469755522,18.4053043352147,18.3865082392424,18.4526183215221,18.4049516974195,18.4561899076164,18.4360993618165,18.3969602023968,18.4586141613618,18.4176490355672,18.420503960072,18.4007786299413,18.4061208603993,18.4123261739112,18.4559418226729,20.5186865005448,20.6234241671177,20.555916387583,18.0859713458945,18.0632286370343,18.0748896114925,18.0121683707063,18.090571586489,18.0768834141833,20.4393632249948,23.1451941571173,23.1544498094291,23.1362176203691,22.9740524076474,23.194661770902,22.0282066894346,22.0298460569927,22.4387709756287,22.4286910274796,21.0577070478243,22.0302081488611,22.4155061194101,21.0716900101697,23.1514988425752,23.1730386128607,22.023633981356,22.0224119400538,21.0531922093074,21.6415814630719,21.647956806353,18.402195688993,18.4110342041973,20.4506288888957,23.8968109255028,22.6630891502887,23.5143852224973,23.5610432950275,23.5385482300426,23.6248781695353,22.9574590660471,23.1450351965928,23.179669408459,20.4316009652176,20.4391424012027,21.2194067439832,21.2273857248934,23.5463823771519,23.1982736278799,23.5436949924557,23.6028132704673,18.8453057714931,18.8257856661698,19.1638546442817,19.161705745477,23.376375,23.398116,23.400979,23.397622,23.408746,23.41506,23.423485,23.428015,23.40909,23.414694,23.447996,23.35373,23.1337514753755,23.133333,23.1613514415301,23.1676607794179,23.1472549947125,20.4842059876787,20.4971284281099,20.5146283195886,20.5629068570439,20.5776901292759,20.6191496480308,20.639518859376,20.7762147662317,20.8076730988489,20.8534176823731,22.0984890930547,22.0911142238033],5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#000000","weight":5,"opacity":0.5,"fill":true,"fillColor":["#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#FDE725","#440154","#440154","#FDE725","#FDE725","#440154","#FDE725","#440154","#440154","#440154","#440154","#440154","#440154","#FDE725","#440154","#FDE725","#FDE725","#440154","#440154","#440154","#FDE725","#FDE725","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#FDE725","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#FDE725","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#FDE725","#FDE725","#FDE725","#FDE725","#FDE725","#FDE725","#FDE725","#FDE725","#FDE725","#440154","#440154","#FDE725","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#FDE725","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#FDE725","#440154","#440154","#440154","#440154","#FDE725","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154","#440154"],"fillOpacity":0.7},null,null,["24","J4","J13","J14","J15","J19","J22","J23","J24","J25","J26","J27","J28","J29","J30","J31","J32","J33","J34","J35","J36","J5","17","20","114","123","84","95","205","207","63","264","76","166","168","169","171","179","230","231","232","233","236","238","239","240","241","242","243","254","279","280","289","290","135","132","112","118","119","128","129","137","273","274","148","215","192","194","197","211","216","218","219","220","226","228","234","235","285","183","281","193","196","198","199","200","204","208","209","212","213","217","221","222","223","224","227","229","287","288","78","83","87","88","91","172","173","177","178","180","277","269","270","117","278","164","237","50","58","62","1","2","253","170","9","19","23","8","66","67","284","6","5","10","18","22","80","82","68","74","77","79","81","85","93","96","97","98","265","266","71","70","75","86","89","92","201","72","94","130","124","131","184","175","176","182","282","181","187","139","275","51","161","159","52","54","55","56","57","59","60","61","140","162","185","261","262","245","38","69","195","188","143","147","146","150","155","163","149","153","144","120","138","136","186","160","53","156","158","191","206","190","202","Clark1","Clark2","Clark3","Clark4","Clark5","Clark6","Clark7","Clark8","Clark9","Clark10","Clark11","Clark12","Clark13","Clark14","J1","J2","J3","J6","J7","J8","J9","J10","J11","J12","J16","J17","J18","J20","J21"],null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addLegend","args":[{"colors":["#440154","#FDE725"],"labels":["FALSE","TRUE"],"na_color":null,"na_label":"NA","opacity":1,"position":"bottomright","type":"factor","title":"Sampled Values","extra":null,"layerId":null,"className":"info legend","group":null}]}],"limits":{"lat":[-34.8097194259026,-32.1367813218188],"lng":[18.0121683707063,23.8968109255028]}},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+</section>
+<section id="data-summary" class="level1">
+<h1>Data Summary</h1>
+<p>The table below has the species count in each plot.</p>
 <div class="cell">
 <div class="cell-output-display">
 <table class="table table-sm table-striped">
@@ -208,33 +182,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">2023-05-04</td>
-<td style="text-align: left;">cederberg_242</td>
-<td style="text-align: right;">16</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">2023-05-04</td>
 <td style="text-align: left;">cederberg_289</td>
 <td style="text-align: right;">17</td>
 </tr>
-<tr class="odd">
-<td style="text-align: left;">2023-05-06</td>
-<td style="text-align: left;">cederberg_243</td>
-<td style="text-align: right;">14</td>
-</tr>
 <tr class="even">
-<td style="text-align: left;">2023-05-07</td>
-<td style="text-align: left;">cederberg_169</td>
-<td style="text-align: right;">15</td>
-</tr>
-<tr class="odd">
 <td style="text-align: left;">2023-05-09</td>
 <td style="text-align: left;">cederberg_230</td>
 <td style="text-align: right;">21</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">2023-05-09</td>
-<td style="text-align: left;">cederberg_290</td>
-<td style="text-align: right;">9</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">2023-05-10</td>
@@ -243,49 +197,167 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 <tr class="even">
 <td style="text-align: left;">2023-05-16</td>
-<td style="text-align: left;">capepoint_97</td>
-<td style="text-align: right;">26</td>
+<td style="text-align: left;">capepoint_93</td>
+<td style="text-align: right;">17</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">2023-05-19</td>
-<td style="text-align: left;">capepoint_77</td>
-<td style="text-align: right;">19</td>
+<td style="text-align: left;">2023-05-16</td>
+<td style="text-align: left;">capepoint_97</td>
+<td style="text-align: right;">29</td>
 </tr>
 <tr class="even">
+<td style="text-align: left;">2023-05-19</td>
+<td style="text-align: left;">capepoint_77</td>
+<td style="text-align: right;">20</td>
+</tr>
+<tr class="odd">
 <td style="text-align: left;">2023-05-19</td>
 <td style="text-align: left;">capepoint_85</td>
 <td style="text-align: right;">6</td>
 </tr>
+<tr class="even">
+<td style="text-align: left;">2023-05-22</td>
+<td style="text-align: left;">capepoint_68</td>
+<td style="text-align: right;">10</td>
+</tr>
 <tr class="odd">
+<td style="text-align: left;">2023-05-22</td>
+<td style="text-align: left;">capepoint_74</td>
+<td style="text-align: right;">20</td>
+</tr>
+<tr class="even">
 <td style="text-align: left;">2023-05-23</td>
 <td style="text-align: left;">capepoint_266</td>
 <td style="text-align: right;">11</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td style="text-align: left;">2023-05-23</td>
 <td style="text-align: left;">capepoint_76</td>
-<td style="text-align: right;">11</td>
+<td style="text-align: right;">16</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2023-05-24</td>
+<td style="text-align: left;">capepoint_79</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2023-05-24</td>
+<td style="text-align: left;">capepoint_81</td>
+<td style="text-align: right;">16</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2023-06-01</td>
+<td style="text-align: left;">capepoint_96</td>
+<td style="text-align: right;">22</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NA_NA</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">NA</td>
+<td style="text-align: left;">_147</td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">NA</td>
+<td style="text-align: left;">_148</td>
+<td style="text-align: right;">14</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">NA</td>
+<td style="text-align: left;">_149</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">NA</td>
+<td style="text-align: left;">_161</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">NA</td>
+<td style="text-align: left;">_278</td>
+<td style="text-align: right;">17</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-</section>
 <section id="rarefaction-curves" class="level2">
 <h2 class="anchored" data-anchor-id="rarefaction-curves">Rarefaction Curves</h2>
 <div class="cell">
 
 </div>
+<p>The plot below shows the species accumulation curve of the plots collected so far.</p>
 <div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>Species Accumulation Curve
+Accumulation method: random, with 100 permutations
+Call: specaccum(comm = plot_species[-1, -1], method = "random") 
+
+                                                                       
+Sites     1.00000  2.00000  3.00000  4.00000  5.00000  6.00000  7.00000
+Richness 14.06000 26.79000 37.59000 47.47000 57.77000 67.49000 76.08000
+sd        7.03501  7.92043  9.13987 10.86971 11.69465 11.21822 10.83921
+                                                                           
+Sites     8.00000  9.00000  10.00000  11.0000  12.00000  13.00000  14.00000
+Richness 84.00000 93.49000 101.70000 108.4600 116.10000 123.34000 130.00000
+sd       11.21327 10.34017   9.78403   9.4681   9.57111   8.49506   7.41143
+                                                    
+Sites     15.00000  16.00000  17.00000  18.00000  19
+Richness 136.05000 141.62000 146.53000 151.49000 156
+sd         6.74106   5.79059   4.86475   3.42154   0</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 1 sites         2 sites         3 sites         4 sites        
+ Min.   : 0.00   Min.   : 8.00   Min.   : 8.00   Min.   :14.00  
+ 1st Qu.: 9.50   1st Qu.:22.00   1st Qu.:31.00   1st Qu.:39.75  
+ Median :15.00   Median :28.00   Median :38.00   Median :48.00  
+ Mean   :14.06   Mean   :26.79   Mean   :37.59   Mean   :47.47  
+ 3rd Qu.:20.00   3rd Qu.:33.25   3rd Qu.:44.00   3rd Qu.:55.25  
+ Max.   :29.00   Max.   :42.00   Max.   :55.00   Max.   :71.00  
+ 5 sites         6 sites         7 sites         8 sites         
+ Min.   :21.00   Min.   :36.00   Min.   :49.00   Min.   : 58.00  
+ 1st Qu.:49.75   1st Qu.:60.75   1st Qu.:68.00   1st Qu.: 77.00  
+ Median :58.00   Median :68.00   Median :76.00   Median : 83.50  
+ Mean   :57.77   Mean   :67.49   Mean   :76.08   Mean   : 84.00  
+ 3rd Qu.:66.00   3rd Qu.:76.00   3rd Qu.:85.25   3rd Qu.: 91.25  
+ Max.   :82.00   Max.   :88.00   Max.   :99.00   Max.   :110.00  
+ 9 sites          10 sites        11 sites        12 sites       
+ Min.   : 69.00   Min.   : 82.0   Min.   : 86.0   Min.   : 90.0  
+ 1st Qu.: 88.00   1st Qu.: 95.0   1st Qu.:100.8   1st Qu.:110.0  
+ Median : 93.00   Median :100.0   Median :108.5   Median :116.0  
+ Mean   : 93.49   Mean   :101.7   Mean   :108.5   Mean   :116.1  
+ 3rd Qu.: 99.00   3rd Qu.:109.0   3rd Qu.:114.0   3rd Qu.:123.0  
+ Max.   :120.00   Max.   :124.0   Max.   :132.0   Max.   :139.0  
+ 13 sites        14 sites      15 sites        16 sites        17 sites       
+ Min.   :104.0   Min.   :111   Min.   :119.0   Min.   :128.0   Min.   :132.0  
+ 1st Qu.:118.0   1st Qu.:125   1st Qu.:132.0   1st Qu.:137.8   1st Qu.:144.0  
+ Median :124.0   Median :131   Median :136.0   Median :141.5   Median :147.0  
+ Mean   :123.3   Mean   :130   Mean   :136.1   Mean   :141.6   Mean   :146.5  
+ 3rd Qu.:129.0   3rd Qu.:134   3rd Qu.:141.0   3rd Qu.:146.0   3rd Qu.:150.0  
+ Max.   :139.0   Max.   :146   Max.   :148.0   Max.   :153.0   Max.   :155.0  
+ 18 sites        19 sites     
+ Min.   :144.0   Min.   :156  
+ 1st Qu.:149.0   1st Qu.:156  
+ Median :151.0   Median :156  
+ Mean   :151.5   Mean   :156  
+ 3rd Qu.:154.0   3rd Qu.:156  
+ Max.   :156.0   Max.   :156  </code></pre>
+</div>
 <div class="cell-output-display">
-<p><img src="index_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid" width="672"></p>
+<p><img src="index_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid" width="672"></p>
 </div>
 </div>
+</section>
+</section>
+<section id="data-download" class="level1">
+<h1>Data Download</h1>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(piggyback)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">#pb_upload(data)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+
 </div>
+<p>You can <a href="https://github.com/BioSCape-io/BioSCape-terrestrial/releases/download/v0.1/bioscape_vegetation_data.csv">download the summarized data (v0.1) here</a>.</p>
 
 
 </section>

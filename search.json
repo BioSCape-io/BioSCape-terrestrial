@@ -1,17 +1,24 @@
 [
   {
-    "objectID": "index.html#plot-summary",
-    "href": "index.html#plot-summary",
+    "objectID": "index.html",
+    "href": "index.html",
     "title": "BioSCape Terrestrial Data Summary",
-    "section": "Plot Summary",
-    "text": "Plot Summary\n\n\n\n\n\nDate\nSiteCode_Plot\nSpecies_Count\n\n\n\n\n2023-05-04\ncederberg_242\n16\n\n\n2023-05-04\ncederberg_289\n17\n\n\n2023-05-06\ncederberg_243\n14\n\n\n2023-05-07\ncederberg_169\n15\n\n\n2023-05-09\ncederberg_230\n21\n\n\n2023-05-09\ncederberg_290\n9\n\n\n2023-05-10\ncederberg_240\n15\n\n\n2023-05-16\ncapepoint_97\n26\n\n\n2023-05-19\ncapepoint_77\n19\n\n\n2023-05-19\ncapepoint_85\n6\n\n\n2023-05-23\ncapepoint_266\n11\n\n\n2023-05-23\ncapepoint_76\n11"
+    "section": "",
+    "text": "The following page summarizes the terrestrial vegetation data collected by BioSCape. This page was last updated Tue Aug 22 12:16:06 2023.\n\n\nWarning in rgl.init(initValue, onlyNULL): RGL: unable to open X11 display\n\n\nWarning: 'rgl.init' failed, running with 'rgl.useNULL = TRUE'."
+  },
+  {
+    "objectID": "index.html#map-of-plot-locations-and-status",
+    "href": "index.html#map-of-plot-locations-and-status",
+    "title": "BioSCape Terrestrial Data Summary",
+    "section": "Map of Plot Locations and Status",
+    "text": "Map of Plot Locations and Status\nCurrently 24 have been sampled. They are shown in the map below."
   },
   {
     "objectID": "index.html#rarefaction-curves",
     "href": "index.html#rarefaction-curves",
     "title": "BioSCape Terrestrial Data Summary",
     "section": "Rarefaction Curves",
-    "text": "Rarefaction Curves\n\n\n\n\n\n\n\n\n\nlibrary(piggyback)\n\n#pb_upload(data)"
+    "text": "Rarefaction Curves\n\n\n\nThe plot below shows the species accumulation curve of the plots collected so far.\n\n\nSpecies Accumulation Curve\nAccumulation method: random, with 100 permutations\nCall: specaccum(comm = plot_species[-1, -1], method = \"random\") \n\n                                                                       \nSites     1.00000  2.00000  3.00000  4.00000  5.00000  6.00000  7.00000\nRichness 14.06000 26.79000 37.59000 47.47000 57.77000 67.49000 76.08000\nsd        7.03501  7.92043  9.13987 10.86971 11.69465 11.21822 10.83921\n                                                                           \nSites     8.00000  9.00000  10.00000  11.0000  12.00000  13.00000  14.00000\nRichness 84.00000 93.49000 101.70000 108.4600 116.10000 123.34000 130.00000\nsd       11.21327 10.34017   9.78403   9.4681   9.57111   8.49506   7.41143\n                                                    \nSites     15.00000  16.00000  17.00000  18.00000  19\nRichness 136.05000 141.62000 146.53000 151.49000 156\nsd         6.74106   5.79059   4.86475   3.42154   0\n\n\n 1 sites         2 sites         3 sites         4 sites        \n Min.   : 0.00   Min.   : 8.00   Min.   : 8.00   Min.   :14.00  \n 1st Qu.: 9.50   1st Qu.:22.00   1st Qu.:31.00   1st Qu.:39.75  \n Median :15.00   Median :28.00   Median :38.00   Median :48.00  \n Mean   :14.06   Mean   :26.79   Mean   :37.59   Mean   :47.47  \n 3rd Qu.:20.00   3rd Qu.:33.25   3rd Qu.:44.00   3rd Qu.:55.25  \n Max.   :29.00   Max.   :42.00   Max.   :55.00   Max.   :71.00  \n 5 sites         6 sites         7 sites         8 sites         \n Min.   :21.00   Min.   :36.00   Min.   :49.00   Min.   : 58.00  \n 1st Qu.:49.75   1st Qu.:60.75   1st Qu.:68.00   1st Qu.: 77.00  \n Median :58.00   Median :68.00   Median :76.00   Median : 83.50  \n Mean   :57.77   Mean   :67.49   Mean   :76.08   Mean   : 84.00  \n 3rd Qu.:66.00   3rd Qu.:76.00   3rd Qu.:85.25   3rd Qu.: 91.25  \n Max.   :82.00   Max.   :88.00   Max.   :99.00   Max.   :110.00  \n 9 sites          10 sites        11 sites        12 sites       \n Min.   : 69.00   Min.   : 82.0   Min.   : 86.0   Min.   : 90.0  \n 1st Qu.: 88.00   1st Qu.: 95.0   1st Qu.:100.8   1st Qu.:110.0  \n Median : 93.00   Median :100.0   Median :108.5   Median :116.0  \n Mean   : 93.49   Mean   :101.7   Mean   :108.5   Mean   :116.1  \n 3rd Qu.: 99.00   3rd Qu.:109.0   3rd Qu.:114.0   3rd Qu.:123.0  \n Max.   :120.00   Max.   :124.0   Max.   :132.0   Max.   :139.0  \n 13 sites        14 sites      15 sites        16 sites        17 sites       \n Min.   :104.0   Min.   :111   Min.   :119.0   Min.   :128.0   Min.   :132.0  \n 1st Qu.:118.0   1st Qu.:125   1st Qu.:132.0   1st Qu.:137.8   1st Qu.:144.0  \n Median :124.0   Median :131   Median :136.0   Median :141.5   Median :147.0  \n Mean   :123.3   Mean   :130   Mean   :136.1   Mean   :141.6   Mean   :146.5  \n 3rd Qu.:129.0   3rd Qu.:134   3rd Qu.:141.0   3rd Qu.:146.0   3rd Qu.:150.0  \n Max.   :139.0   Max.   :146   Max.   :148.0   Max.   :153.0   Max.   :155.0  \n 18 sites        19 sites     \n Min.   :144.0   Min.   :156  \n 1st Qu.:149.0   1st Qu.:156  \n Median :151.0   Median :156  \n Mean   :151.5   Mean   :156  \n 3rd Qu.:154.0   3rd Qu.:156  \n Max.   :156.0   Max.   :156"
   },
   {
     "objectID": "about.html",
