@@ -1,0 +1,3 @@
+- source: project
+  gh-pages:
+       url: 'https://bioscape-io.github.io/BioSCape-terrestrial/'
