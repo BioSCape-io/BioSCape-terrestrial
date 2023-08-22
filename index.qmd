@@ -4,15 +4,15 @@ title: "BioSCape Terrestrial Data Summary"
 
 ## Overview
 
-The following page summarizes the terrestrial vegetation data collected by BioSCape so far.
+The following page summarizes the terrestrial vegetation data collected by BioSCape. This page was last updated `r date()`.
 
-```{r,echo=F, message=FALSE}
+```{r,echo=F, message=FALSE,results='hide', cache=T}
 
 library(googlesheets4)
 library(tidyverse)
 library(vegan)
 require(Rarefy)
-
+library(sf)
 # Define the URL or key of the Google Sheet
 sheet_url <- "https://docs.google.com/spreadsheets/d/19RdI9SdqOx8zn6XBxywgUNgmAHJ6JatOjtTEK-VAcQE/edit#gid=266439266"
 
@@ -23,13 +23,22 @@ sheet <- gs4_get(sheet_url)
 # Filter only plot tabs
 sheets = sheet_names(sheet)
   
-# Filter using grep
-
+# Filter using grep to identify only plot and drop template sheets
 plot_sheets <- sheets[grepl("plot", sheets) & !grepl("emplate", sheets)]
 
 
 # site data
-sites=read_sheet(sheet,"SiteData") 
+sites=read_sheet(sheet,"SiteData")
+
+# download plot location data kml
+#used https://sites.google.com/site/gdocs2direct/ to reformat link
+download.file("https://drive.google.com/uc?export=download&id=1LeoD3lxjJ_v9fl4CckYBxSzvXGnyhGyy",
+              destfile="data/points.kml")
+
+plots=st_read("data/points.kml") %>% 
+  mutate(Plot=Name,
+         sampled=Plot%in%sites$Plot)
+
 
 
 # Download data from the specified tabs as data frames
@@ -37,20 +46,69 @@ data_downloaded <- lapply(plot_sheets, function(tab) {
 read_sheet(sheet,tab) %>% 
     select(-SeasonallyApparent) #drop field causing problems with weird entry in Rondevlei_147
 })
+```
 
+
+
+```{r, echo=F, message=F}
+# merge tables
 
 data <- data_downloaded %>% 
   bind_rows() %>% 
   separate(SiteCode_Plot_Quadrant,into=c("SiteCode","Plot","Quadrant"),sep="_",remove = F) %>% 
   mutate("SiteCode_Plot"=paste(SiteCode,Plot,sep="_"),
          Plot=as.numeric(Plot)) %>% 
-  left_join(sites,by=c("SiteCode_Plot_Quadrant","SiteCode","SiteCode_Plot","Plot","Quadrant") )
+  left_join(sites,by=c("SiteCode_Plot_Quadrant","SiteCode","SiteCode_Plot","Plot","Quadrant") ) 
+
 ```
 
-## Plot Summary
+
+## Map of Plot Locations and Status
+
+Currently `r sum(plots$sampled)` have been sampled. They are shown in the map below.
 
 ```{r,echo=F, message=F}
+# Load the leaflet library
+library(leaflet)
 
+
+# Create a color palette for sampled values
+colorPalette <- colorFactor(
+  palette = "viridis",
+  domain = plots$sampled
+)
+
+# Create a leaflet map
+mymap <- leaflet(plots) %>%
+  addTiles() %>%
+  addCircleMarkers(
+    radius = 5, # Adjust the radius of markers
+    fillColor = ~colorPalette(sampled),
+    color = "#000000", # Border color
+    stroke = F,
+    fillOpacity = 0.7,
+    popup = ~Name
+  ) %>%
+  addLegend(
+    "bottomright",
+    pal = colorPalette,
+    values = ~sampled,
+    labels = c("No","Yes"),
+    title = "Sampled Values",
+    opacity = 1
+  ) 
+
+# Display the map
+mymap
+
+```
+
+
+# Data Summary 
+
+The table below has the species count in each plot.
+
+```{r,echo=F, message=F}
 data %>% 
   group_by(Date, SiteCode_Plot) %>% 
   summarize(Species_Count=length(unique(Genus_Species_combo))) %>% 
@@ -78,26 +136,39 @@ plot_species <-
 
 ```
 
+The plot below shows the species accumulation curve of the plots collected so far.
+
 ```{r, echo=F}
-a<-list(NA,'Shannon')
-names(a)<-c('comm','method')
+library(vegan)
 
-rare_shannon<-rare_alpha(plot_species[-1,-1],
-                         method="HCDT",random=999,
-                         args=a,mean=TRUE)
-
-plot(rare_shannon[,1],ylab="Shannon index",xlab="Number of sampling units",type="l", ylim=range(rare_shannon,na.rm=TRUE))
-lines(rare_shannon[,2],lty=2)
-lines(rare_shannon[,3],lty=2)
-
+sp1 <- specaccum(plot_species[-1,-1])
+sp2 <- specaccum(plot_species[-1,-1], "random")
+sp2
+summary(sp2)
+plot(sp1, ci.type="poly", col="blue", lwd=2, ci.lty=0, ci.col="lightblue",ylab="Species Richness")
+boxplot(sp2, col="yellow", add=TRUE, pch="+")
 ```
+
+
+# Data Download
 
 ```{r,echo=F}
 
 # upload summary data to release
 
 library(piggyback)
+tag="v0.1"
+repo="BioSCape-io/BioSCape-terrestrial"
+readr::write_csv(data,"data/bioscape_vegetation_data.csv")
 
-readr::write_csv(data,"bioscape_vegetation_data.csv")
-pb_upload("bioscape_vegetation_data.csv", "bioscape-io/bioscape-vegetation")
+# if release doesn't exist for this tag - create it
+if(!any(tag%in%pb_releases(repo)$tag_name))  pb_new_release(repo = repo,tag=tag)
+
+pb_upload(file = "data/bioscape_vegetation_data.csv",
+          repo="BioSCape-io/BioSCape-terrestrial",
+          tag=tag)
+
+download_link=paste0("https://github.com/BioSCape-io/BioSCape-terrestrial/releases/download/",tag,"/bioscape_vegetation_data.csv")
 ```
+
+You can [download the summarized data (`r tag`) here](`r download_link`).

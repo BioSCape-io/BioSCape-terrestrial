@@ -4,3 +4,5 @@ _site/*
 *.csv
 .Rhistory
 index_files
+data/*
+index_cache
