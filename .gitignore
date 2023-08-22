@@ -2,3 +2,5 @@
 .Rproj.user
 _site/*
 *.csv
+.Rhistory
+index_files

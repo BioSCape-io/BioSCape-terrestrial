@@ -21,7 +21,11 @@ gs4_auth(email = "adamw@buffalo.edu")#, token = "your_token")
 sheet <- gs4_get(sheet_url)
 
 # Filter only plot tabs
-plot_sheets <- grep("_plot",sheet_names(sheet),value=T,ignore.case = T)
+sheets = sheet_names(sheet)
+  
+# Filter using grep
+
+plot_sheets <- sheets[grepl("plot", sheets) & !grepl("emplate", sheets)]
 
 
 # site data
@@ -30,8 +34,10 @@ sites=read_sheet(sheet,"SiteData")
 
 # Download data from the specified tabs as data frames
 data_downloaded <- lapply(plot_sheets, function(tab) {
-read_sheet(sheet,tab)
+read_sheet(sheet,tab) %>% 
+    select(-SeasonallyApparent) #drop field causing problems with weird entry in Rondevlei_147
 })
+
 
 data <- data_downloaded %>% 
   bind_rows() %>% 
@@ -48,7 +54,7 @@ data <- data_downloaded %>%
 data %>% 
   group_by(Date, SiteCode_Plot) %>% 
   summarize(Species_Count=length(unique(Genus_Species_combo))) %>% 
-  na.omit() %>% 
+  #na.omit() %>% 
   arrange(Date) %>% 
   knitr::kable()
 ```
@@ -62,7 +68,8 @@ plot_species <-
               names_from="Genus_Species_combo",
 #              values_from = "PercentCoverAlive",
               values_from = "AbundanceAlive_count",
-              values_fn = sum, values_fill = 0)
+              values_fn = sum, values_fill = 0) %>% 
+  mutate_all(.funs = function(x) ifelse(is.na(x),0,x))
 
 #raremax <- min(rowSums(plot_species[-1,-1],na.rm=T))
 #raremax = 3

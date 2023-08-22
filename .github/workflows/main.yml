@@ -22,7 +22,7 @@ jobs:
       #     Rscript -e "install.packages('questionr')"
       #     Rscript -e "install.packages('curl')"
       #     Rscript -e "install.packages('gargle')"
-      #     Rscript -e "install.packages('tidyverse')"
+          Rscript -e "install.packages('tidyverse')"
           Rscript -e "install.packages('googledrive')"
           Rscript -e "install.packages('httr')"
           Rscript -e "install.packages('googlesheets4')"
