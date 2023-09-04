@@ -138,9 +138,10 @@ plots=bind_rows(wc$pl,cp$pl,cederberg$pl)
 
 # write it all out in a single, multi-layer geopackage
 
-
-plot_filename=paste0("BioSCape_plot_locations_",format(lubridate::today(),"%Y%m%d"),".gpkg")
-
+tag=paste0("v",format(lubridate::today(),"%Y%m%d"))
+  
+plot_filename=paste0("BioSCape_plot_locations_",tag,".gpkg")
+dest="data"
 print(paste("Saving ",plot_filename))
 
 file.remove(file.path(dest,plot_filename))

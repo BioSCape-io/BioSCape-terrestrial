@@ -1,5 +1,6 @@
-# Script to semi-automate veg plot cleaning
-
+# Script to semi-automate veg plot updating
+# download the google sheets and assemble into a single table per data type
+# update plot data with the plots that have been sampled.
 
 library(googlesheets4)
 library(tidyverse)
@@ -29,11 +30,6 @@ plot_sheets <- sheets[grepl("plot", sheets) & !grepl("Template_Plot", sheets)]
 # site data
 sites=read_sheet(sheet,"SiteData")
 
-######### Plot kml
-# download plot location data kml
-#used https://sites.google.com/site/gdocs2direct/ to reformat link
-download.file("https://drive.google.com/uc?export=download&id=1LeoD3lxjJ_v9fl4CckYBxSzvXGnyhGyy",
-              destfile="data/points.kml")
 
 
 # Download data from the specified tabs as data frames
@@ -44,7 +40,7 @@ read_sheet(sheet,tab) %>%
 
 
 
-# merge tables
+# merge site data and plot-level data
 
 data <- data_downloaded %>% 
   bind_rows() %>% 
@@ -53,25 +49,44 @@ data <- data_downloaded %>%
          Plot=as.numeric(Plot)) %>% 
   left_join(sites,by=c("SiteCode_Plot_Quadrant","SiteCode","SiteCode_Plot","Plot","Quadrant") ) 
 
+######### Plot kml
+# download plot location data kml
+
+tag="v20230904" #specify the most recent version of the plot kml
+
+repo="BioSCape-io/BioSCape-terrestrial"
+gpkgfile=paste0("bioscape_plots_",tag,".gpkg")
 
 
-## Map of Plot Locations and Status
+pb_download(file = gpkgfile,repo = repo,
+              dest=file.path("data"))
 
+######### Plot updates
+# download plot polygons
+
+plot_filename=paste0("BioSCape_plot_locations_",tag,".gpkg")
+pb_download(file = plot_filename,
+          repo="BioSCape-io/BioSCape-terrestrial",
+          tag=tag,dest = "data")
+
+homogeneous_areas=st_read(file.path("data",plot_filename),layer = "homogeneous_areas" )
+
+allplots=st_read(file.path("data",gpkgfile)) %>%
+  mutate(sampled_site=old_plot%in%sites$Plot, #identify which have site data
+         sampled_cover=old_plot%in%data$Plot,
+         sampled_homogeneous=old_plot%in%homogeneous_areas$plot) #identify which have cover data
+
+#table(allplots$sampled_cover,allplots$sampled_site)
 
 # Data upload
 
 # upload summary data to release
 
-tag="v0.1"
+data_filename=paste0("bioscape_vegetation_data_",tag,".csv")
+
+tag=paste0("v",gsub("-","",lubridate::today()))
 repo="BioSCape-io/BioSCape-terrestrial"
-readr::write_csv(data,"data/bioscape_vegetation_data.csv")
-
-kmlfile=paste0("bioscape_plots_",tag,".kml")
-st_write(plots,file.path("data",kmlfile),append=F)
-
-gpkgfile=paste0("bioscape_plots_",tag,".gpkg")
-st_write(plots,file.path("data/",gpkgfile),append=F)
-
+readr::write_csv(data,file.path("data",data_filename))
 
 # if release doesn't exist for this tag - create it
 if(!any(tag%in%pb_releases(repo)$tag_name))  pb_new_release(repo = repo,tag=tag)
@@ -85,7 +100,7 @@ pb_upload(file = file.path("data",gpkgfile),
           tag=tag)
 
 
-pb_upload(file = "data/bioscape_vegetation_data.csv",
+pb_upload(file = file.path("data",data_filename),
           repo="BioSCape-io/BioSCape-terrestrial",
           tag=tag)
 

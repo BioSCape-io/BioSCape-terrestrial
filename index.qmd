@@ -8,47 +8,42 @@ The following page summarizes the terrestrial vegetation data collected by BioSC
 
 ```{r,echo=F, message=FALSE,results='hide', warning=F}
 
-library(googlesheets4)
 library(tidyverse)
 library(vegan)
 require(Rarefy)
 library(sf)
-# Define the URL or key of the Google Sheet
-sheet_url <- "https://docs.google.com/spreadsheets/d/19RdI9SdqOx8zn6XBxywgUNgmAHJ6JatOjtTEK-VAcQE/edit#gid=266439266"
-
-# Authenticate and access the Google Sheet
-gs4_auth(email = "adamw@buffalo.edu")#, token = "your_token")
-sheet <- gs4_get(sheet_url)
-
-# Filter only plot tabs
-sheets = sheet_names(sheet)
-  
-# Filter using grep to identify only plot and drop template sheets
-plot_sheets <- sheets[grepl("plot", sheets) & !grepl("emplate", sheets)]
+library(piggyback)
 
 
-# site data
-sites=read_sheet(sheet,"SiteData")
+tag="v0.1"
+repo="BioSCape-io/BioSCape-terrestrial"
+readr::write_csv(data,"data/bioscape_vegetation_data.csv")
 
-# download plot location data kml
-#used https://sites.google.com/site/gdocs2direct/ to reformat link
-download.file("https://drive.google.com/uc?export=download&id=1LeoD3lxjJ_v9fl4CckYBxSzvXGnyhGyy",
-              destfile="data/points.kml")
+kmlfile=paste0("bioscape_plots_",tag,".kml")
+st_write(plots,file.path("data",kmlfile),append=F)
 
-plots=st_read("data/points.kml") %>% 
-  mutate(Plot=Name,
-         sampled=Plot%in%sites$Plot)
+gpkgfile=paste0("bioscape_plots_",tag,".gpkg")
+st_write(plots,file.path("data/",gpkgfile),append=F)
 
 
+# if release doesn't exist for this tag - create it
+if(!any(tag%in%pb_releases(repo)$tag_name))  pb_new_release(repo = repo,tag=tag)
 
-# Download data from the specified tabs as data frames
-data_downloaded <- lapply(plot_sheets, function(tab) {
-read_sheet(sheet,tab) %>% 
-    select(-SeasonallyApparent) #drop field causing problems with weird entry in Rondevlei_147
-})
+pb_upload(file = file.path("data",kmlfile),
+          repo="BioSCape-io/BioSCape-terrestrial",
+          tag=tag)
+
+pb_upload(file = file.path("data",gpkgfile),
+          repo="BioSCape-io/BioSCape-terrestrial",
+          tag=tag)
+
+
+pb_upload(file = "data/bioscape_vegetation_data.csv",
+          repo="BioSCape-io/BioSCape-terrestrial",
+          tag=tag)
+
+
 ```
-
-
 
 ```{r, echo=F, message=F}
 # merge tables
@@ -61,7 +56,6 @@ data <- data_downloaded %>%
   left_join(sites,by=c("SiteCode_Plot_Quadrant","SiteCode","SiteCode_Plot","Plot","Quadrant") ) 
 
 ```
-
 
 ## Map of Plot Locations and Status
 
@@ -103,8 +97,7 @@ mymap
 
 ```
 
-
-# Data Summary 
+# Data Summary
 
 The table below has the species count in each plot.
 
@@ -147,26 +140,43 @@ plot(sp1, ci.type="poly", col="blue", lwd=2, ci.lty=0, ci.col="lightblue",ylab="
 boxplot(sp2, col="yellow", add=TRUE, pch="+")
 ```
 
-
 # Data Download
 
-```{r,echo=F}
+```{r,echo=F, message=F, warning=FALSE}
 
 # upload summary data to release
 
-library(piggyback)
 tag="v0.1"
 repo="BioSCape-io/BioSCape-terrestrial"
 readr::write_csv(data,"data/bioscape_vegetation_data.csv")
 
+kmlfile=paste0("bioscape_plots_",tag,".kml")
+st_write(plots,file.path("data",kmlfile),append=F)
+
+gpkgfile=paste0("bioscape_plots_",tag,".gpkg")
+st_write(plots,file.path("data/",gpkgfile),append=F)
+
+
 # if release doesn't exist for this tag - create it
 if(!any(tag%in%pb_releases(repo)$tag_name))  pb_new_release(repo = repo,tag=tag)
+
+pb_upload(file = file.path("data",kmlfile),
+          repo="BioSCape-io/BioSCape-terrestrial",
+          tag=tag)
+
+pb_upload(file = file.path("data",gpkgfile),
+          repo="BioSCape-io/BioSCape-terrestrial",
+          tag=tag)
+
 
 pb_upload(file = "data/bioscape_vegetation_data.csv",
           repo="BioSCape-io/BioSCape-terrestrial",
           tag=tag)
 
-download_link=paste0("https://github.com/BioSCape-io/BioSCape-terrestrial/releases/download/",tag,"/bioscape_vegetation_data.csv")
+
+vegdata_download_link=paste0("https://github.com/BioSCape-io/BioSCape-terrestrial/releases/download/",tag,"/bioscape_vegetation_data.csv")
+kml_download_link=paste0("https://github.com/BioSCape-io/BioSCape-terrestrial/releases/download/",tag,"/",kmlfile)
+gpkg_download_link=paste0("https://github.com/BioSCape-io/BioSCape-terrestrial/releases/download/",tag,"/",gpkgfile)
 ```
 
-You can [download the summarized data (`r tag`) here](`r download_link`).
+You can download the plot data here, [gpkg](%60r%20gpkg_download_link%60) and (kml)\[`r kml_download_link`\], and the [summarized vegetation data (`r tag`) here](%60r%20vegdata_download_link%60).
