@@ -1,6 +1,3 @@
-# OLD VERSION WHEN THERE WAS JUST ONE DATA SHEET
-
-
 # Script to semi-automate veg plot updating
 # download the google sheets and assemble into a single table per data type
 # update plot data with the plots that have been sampled.
@@ -31,13 +28,21 @@ points=st_read(file.path("data",gpkgfile)) %>%
 
 
 # Define the URL or key of the Google Sheet
-sheet_url <- "https://docs.google.com/spreadsheets/d/19RdI9SdqOx8zn6XBxywgUNgmAHJ6JatOjtTEK-VAcQE/edit#gid=266439266"
-
+sheet_urls <- c(
+  "https://docs.google.com/spreadsheets/d/19RdI9SdqOx8zn6XBxywgUNgmAHJ6JatOjtTEK-VAcQE/edit#gid=266439266", # Ross 01
+  "https://docs.google.com/spreadsheets/d/12IYf_NobQfFlHBQTTZ3ZmuWdzklg-xlkJ5_-TZRcDug/edit#gid=266439266", #Ross 01b
+  "https://docs.google.com/spreadsheets/d/1OEE2u7NmZ37a4y8iogjh8r0R22L-eVxV04ns8yqy91A/edit#gid=266439266", # 02
+  "https://docs.google.com/spreadsheets/d/11S2nd_3RnbKTMDEo6fj67mnwBPnSIgiOpZBVTx287Tc/edit#gid=266439266", #03
+  "https://docs.google.com/spreadsheets/d/113GkBpKVlcGeA8aoWyaN0lWiW4vbtgDokzD0xcjRquQ/edit#gid=266439266") #04
 
 
 ### Data sheets
 # Authenticate and access the Google Sheet
 gs4_auth(email = "adamw@buffalo.edu")
+
+## loop through sheets and assemble data
+#foreach(sheet_url=sheet_urls) %do% {
+# sheet_url=sheet_urls[1]
 sheet <- gs4_get(sheet_url)
 
 # Filter only plot tabs
@@ -47,6 +52,12 @@ if(F) find_dups=read_sheet(sheet,"SiteData") %>% distinct(SiteCode_Plot) %>% arr
 
 # site data
 sitesheet=read_sheet(sheet,"SiteData")
+
+
+# get plots to update
+numchange = points %>%
+  mutate(old_plotnum=as.numeric(unlist(regmatches(old_plot, gregexpr("[0-9]+\\.?[0-9]*", old_plot))))) %>% 
+  filter(plotnum!=old_plotnum) 
 
 sites= sitesheet %>% 
   mutate(old_plot=Plot) %>% 
@@ -59,18 +70,19 @@ sites= sitesheet %>%
     old_plot==24&SiteCode=="swartberg" ~ 14,
     TRUE ~ old_plot
   )) %>% 
-  left_join(points,by=c("plot"="plotnum")) 
+  left_join(points,by=c("plot"="plotnum","old_plot")) 
 
 
 # Filter using grep to identify only plot and drop template sheets
-plot_sheets <- sheets[grepl("plot", sheets) & !grepl("Template_Plot", sheets)]
+plot_sheets <- sheets[grepl("plot", sheets) & !grepl("Template_Plot", sheets) & !grepl("Swartberg_20_plot",sheets)] #swartberg 20 is empty
 
 
 # Download data from the specified tabs as data frames
 data_downloaded <- lapply(plot_sheets, function(tab) {
 read_sheet(sheet,tab) %>% 
-    select(-SeasonallyApparent) #drop field causing problems with weird entry in Rondevlei_147
-})
+    select(-SeasonallyApparent) %>%  #drop field causing problems with weird entry in Rondevlei_147
+    filter(!is.na(SiteCode_Plot_Quadrant))
+    })
 
 
 

@@ -45,7 +45,7 @@ parks=st_read("https://drive.google.com/uc?export=download&id=1_wrvY-5AQdNDtyBmk
   select(nearest_reserve=RESERVENAM)
 
 
-filename=paste0("BioSCape_vegplots_v20230904",".kml")
+#filename=paste0("BioSCape_vegplots_v20230904",".kml")
 
 
 plots <- 
@@ -62,8 +62,6 @@ dups=table(as.character(plots$plot))
 table(dups)
 
 
-
-
 # Data upload
 
 # upload summary data to release
@@ -72,11 +70,11 @@ tag=paste0("v",gsub("-","",lubridate::today()))
 repo="BioSCape-io/BioSCape-terrestrial"
 
 
-kmlfile=paste0("bioscape_plots_",tag,".kml")
+kmlfile=paste0("bioscape_vegplots_",tag,".kml")
 st_write(plots,file.path("data",kmlfile),append=F)
 
 
-gpkgfile=paste0("bioscape_plots_",tag,".gpkg")
+gpkgfile=paste0("bioscape_vegplots_",tag,".gpkg")
 st_write(plots,file.path("data/",gpkgfile),append=F)
 
 
@@ -91,3 +89,4 @@ pb_upload(file = file.path("data",gpkgfile),
           repo="BioSCape-io/BioSCape-terrestrial",
           tag=tag)
 
+# Last tag run was "v20230905"

@@ -15,9 +15,14 @@ touchgis_file_tag="v2023.08.24" #which version of touchgis files to use? https:/
 
 ######### Plot kml
 # download plot location data kml
-#used https://sites.google.com/site/gdocs2direct/ to reformat link
-download.file("https://drive.google.com/uc?export=download&id=1LeoD3lxjJ_v9fl4CckYBxSzvXGnyhGyy",
-              destfile="data/points.kml")
+
+tag="v20230905" #specify the most recent version of the plot kml
+
+repo="BioSCape-io/BioSCape-terrestrial"
+gpkgfile=paste0("bioscape_vegplots_",tag,".gpkg")
+
+pb_download(file = gpkgfile,repo = repo,dest=file.path("data"))
+points=st_read(file.path("data",gpkgfile))
 
 
 ############
@@ -140,7 +145,7 @@ plots=bind_rows(wc$pl,cp$pl,cederberg$pl)
 
 tag=paste0("v",format(lubridate::today(),"%Y%m%d"))
   
-plot_filename=paste0("BioSCape_plot_locations_",tag,".gpkg")
+plot_filename=paste0("bioscape_plotpolygons_",tag,".gpkg")
 dest="data"
 print(paste("Saving ",plot_filename))
 

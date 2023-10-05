@@ -6,3 +6,6 @@ _site/*
 index_files
 data/*
 index_cache
+.DS_Store
+.Rhistory
+webdata

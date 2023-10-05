@@ -14,47 +14,9 @@ require(Rarefy)
 library(sf)
 library(piggyback)
 
-
-tag="v0.1"
-repo="BioSCape-io/BioSCape-terrestrial"
-readr::write_csv(data,"data/bioscape_vegetation_data.csv")
-
-kmlfile=paste0("bioscape_plots_",tag,".kml")
-st_write(plots,file.path("data",kmlfile),append=F)
-
-gpkgfile=paste0("bioscape_plots_",tag,".gpkg")
-st_write(plots,file.path("data/",gpkgfile),append=F)
-
-
-# if release doesn't exist for this tag - create it
-if(!any(tag%in%pb_releases(repo)$tag_name))  pb_new_release(repo = repo,tag=tag)
-
-pb_upload(file = file.path("data",kmlfile),
-          repo="BioSCape-io/BioSCape-terrestrial",
-          tag=tag)
-
-pb_upload(file = file.path("data",gpkgfile),
-          repo="BioSCape-io/BioSCape-terrestrial",
-          tag=tag)
-
-
-pb_upload(file = "data/bioscape_vegetation_data.csv",
-          repo="BioSCape-io/BioSCape-terrestrial",
-          tag=tag)
-
-
-```
-
-```{r, echo=F, message=F}
-# merge tables
-
-data <- data_downloaded %>% 
-  bind_rows() %>% 
-  separate(SiteCode_Plot_Quadrant,into=c("SiteCode","Plot","Quadrant"),sep="_",remove = F) %>% 
-  mutate("SiteCode_Plot"=paste(SiteCode,Plot,sep="_"),
-         Plot=as.numeric(Plot)) %>% 
-  left_join(sites,by=c("SiteCode_Plot_Quadrant","SiteCode","SiteCode_Plot","Plot","Quadrant") ) 
-
+tag="v20230904" #specify the most recent version of the plot kml
+vegplots <- st_read(paste0("data/bioscape_plots_",tag,".kml"))
+vegdata=readr::read_csv(paste0("data/bioscape_vegetation_data_",tag,".csv"))
 ```
 
 ## Map of Plot Locations and Status
@@ -69,7 +31,7 @@ library(leaflet)
 # Create a color palette for sampled values
 colorPalette <- colorFactor(
   palette = "viridis",
-  domain = plots$sampled
+  domain = vegplots$sampled
 )
 
 # Create a leaflet map
@@ -102,7 +64,7 @@ mymap
 The table below has the species count in each plot.
 
 ```{r,echo=F, message=F}
-data %>% 
+vegdata %>% 
   group_by(Date, SiteCode_Plot) %>% 
   summarize(Species_Count=length(unique(Genus_Species_combo))) %>% 
   #na.omit() %>% 
@@ -143,35 +105,6 @@ boxplot(sp2, col="yellow", add=TRUE, pch="+")
 # Data Download
 
 ```{r,echo=F, message=F, warning=FALSE}
-
-# upload summary data to release
-
-tag="v0.1"
-repo="BioSCape-io/BioSCape-terrestrial"
-readr::write_csv(data,"data/bioscape_vegetation_data.csv")
-
-kmlfile=paste0("bioscape_plots_",tag,".kml")
-st_write(plots,file.path("data",kmlfile),append=F)
-
-gpkgfile=paste0("bioscape_plots_",tag,".gpkg")
-st_write(plots,file.path("data/",gpkgfile),append=F)
-
-
-# if release doesn't exist for this tag - create it
-if(!any(tag%in%pb_releases(repo)$tag_name))  pb_new_release(repo = repo,tag=tag)
-
-pb_upload(file = file.path("data",kmlfile),
-          repo="BioSCape-io/BioSCape-terrestrial",
-          tag=tag)
-
-pb_upload(file = file.path("data",gpkgfile),
-          repo="BioSCape-io/BioSCape-terrestrial",
-          tag=tag)
-
-
-pb_upload(file = "data/bioscape_vegetation_data.csv",
-          repo="BioSCape-io/BioSCape-terrestrial",
-          tag=tag)
 
 
 vegdata_download_link=paste0("https://github.com/BioSCape-io/BioSCape-terrestrial/releases/download/",tag,"/bioscape_vegetation_data.csv")
