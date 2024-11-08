@@ -1,0 +1,98 @@
+---
+title: "BioSCape Photo Processing"
+format: html
+editor: visual
+---
+
+```{r}
+# Load necessary libraries
+library(jsonlite)  # for handling JSON data
+library(exifr)     # for extracting EXIF metadata from image files
+library(lubridate) # for handling date and time data
+library(stringr)   # for string operations
+library(googlesheets4)
+library(tidyverse)
+library(doParallel)
+library(googledrive)
+library(readxl)
+library(knitr)
+library(piggyback)
+
+tag=paste0("vegphoto_v",format(today(),"%Y%m%d"))
+pb_new_release("BioSCape-io/BioSCape-terrestrial",tag=tag)
+```
+
+# Process combined photo spreadsheet
+
+## Download current version of spreadsheet
+
+```{r}
+######### User settings
+if (Sys.getenv("USER") == "jasper") {gmail = "jasper.slingsby@uct.ac.za"}
+if (Sys.getenv("USER") == "adamw") {gmail = "adamw@buffalo.edu"}
+
+# Define the URL or key of the Google Sheets
+fname="data/Rarefaction_FA.xlsx"
+sheet_url="https://docs.google.com/spreadsheets/d/13kJ7O4PbH6bM-Y89wGf_tbxs-R1THXlb/edit?usp=sharing&ouid=100268570982256677112&rtpof=true&sd=true"
+
+drive_download(sheet_url, path = fname, overwrite = TRUE)
+```
+
+## Get sheet names
+
+```{r}
+sheets = excel_sheets(fname)
+# Read sheets and do a little cleaning for irregularites
+
+photo_all=foreach(i=sheets,.combine=bind_rows) %do% {
+  read_xlsx(fname,i) %>% 
+#    select(modify_date) |>
+    mutate(
+      fdate = gsub(":", "-", substring(modify_date, 1, 10)), # get just date part and replace : with -
+      fdate2 = paste(fdate, substring(modify_date, 12)),       # Combine the formatted date part with the time part
+      datetime = as_datetime(fdate2),       # Convert to datetime and extract the date using as_date
+      date = date(datetime),       # extract just date
+      time = hms(format(datetime, "%H:%M:%S")),  # get just time part from the datetime
+      plot_number=as.character(plot_number),
+      photo_type=case_when(
+        grepl("plot|S|N|W|E|start|rarefaction|end|stop",fixed=F,genus) ~ "plot",
+        T ~ "species"
+        ),
+      ) |>
+    select(-fdate,-fdate2) |>  # drop temporary columns
+    select(-exposure_time) #drop exposure time due to irregularity and not needed.
+} 
+
+```
+
+
+## Upload photo dataset to github release
+
+```{r}
+photo_all_file=paste0("data/photo_all_",tag,".csv")
+write_csv(photo_all,photo_all_file)
+
+# upload to github release is manual - run the pb_upload command if desired
+if (F) pb_upload(photo_all_file,tag=tag)
+
+```
+
+```{r}
+kable(head(photo_all))
+```
+
+## Process Rarefaction photos
+
+```{r}
+photo_rarefaction <- photo_all |>
+  group_by(plot_number, rarefaction_replicate) |>
+  filter(rarefaction_photo==1) |>
+  mutate(
+    rarefaction_time=datetime-min(datetime),
+    rarefaction_min=as.numeric(rarefaction_time)/60,
+    count=row_number()-1,
+    plot_number_replicate=paste(plot_number,rarefaction_replicate,sep=".")
+    ) |>
+  select(plot_number,plot_number_replicate,genus, species, datetime,time,rarefaction_time,rarefaction_min,rarefaction_replicate,count)
+```
+
