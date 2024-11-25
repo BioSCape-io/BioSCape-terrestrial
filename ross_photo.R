@@ -1,20 +1,26 @@
 ## Ross photo cleanup
+library(tidyverse)
 library(jsonlite)
 library(exifr)
 library(lubridate)
+library(sf)
 
-
-
+# download spatial data
+pb_download(file="BioScapeSpatialProducts2024_11_12.zip",dest = "data")
+unzip("data/BioScapeSpatialProducts2024_11_12.zip",exdir = "data/spatial")
+plots=read_sf("data/spatial/BioSCapeVegCenters2024_11_12.shp")
 
 # folders downloaded to local disk from google drive folder
 # 
 path1="/Users/adamw/Library/CloudStorage/GoogleDrive-adammichaelwilson@gmail.com/Shared drives/BioSCape_Admin/VegPlots/Photos/BioSCape1_Ross/"
 path2="/Users/adamw/Library/CloudStorage/GoogleDrive-adammichaelwilson@gmail.com/Shared drives/BioSCape_Admin/VegPlots/Photos/BioSCape1_Ross(1)/"
+path3="/Users/adamw/Library/CloudStorage/GoogleDrive-adammichaelwilson@gmail.com/Shared drives/BioSCape_Admin/VegPlots/Photos/BioSCape1_Ross_ApplePhotos//"
 
 
 rfiles <- bind_rows(
   bind_cols(folder = "ross", path = list.files(path1, recursive = TRUE, full.names = TRUE)),
-  bind_cols(folder = "ross_1", path = list.files(path2, recursive = TRUE, full.names = TRUE))) |> 
+  bind_cols(folder = "ross_1", path = list.files(path2, recursive = TRUE, full.names = TRUE)),
+  bind_cols(folder = "ross_3", path = list.files(path3, recursive = TRUE, full.names = TRUE))) |> 
   mutate(
     filename = basename(path),         # Extract the file name from the full path
     folder = dirname(path),            # Extract the folder path
@@ -25,7 +31,7 @@ rfiles <- bind_rows(
       str_remove("\\.[a-zA-Z0-9]+$")) |> # remove third file extension (e.g. ".HEIC.json")
   filter(!type%in%c("MP4","MOV","html","PNG")) #remove videos and other files
 
-glimpse(rfiles)
+if(F) glimpse(rfiles)
 
 # ## JSON File Processing
 
@@ -53,12 +59,14 @@ jdupes <- jfiles |>
     json_description = paste(unique(sapply(jsonpath, function(x) fromJSON(x)$description)), collapse = ";") # Combine descriptions
   )
 
-table(jdupes$json_identical) #check for identical json files
-# jdupes[jdupes$json_n>1&grepl(" ",jdupes$json_description),]|> View() #check for multiple descriptions
+if(F){
+  table(jdupes$json_identical) #check for identical json files
+  jdupes[jdupes$json_n>1&grepl(" ",jdupes$json_description),]|> View() #check for multiple descriptions
+}
 
 #### Process image files
 ifiles <- rfiles |>
-  filter(type %in% c("JPG", "HEIC")) |>
+  filter(type %in% c("JPG", "HEIC","jpg")) |>
   select(photonum, folder, imagepath = path, filename)
 
 
@@ -66,21 +74,31 @@ ifiles <- rfiles |>
 if(sum(is.na(ifiles$photonum))>0) stop("some photos do not have a photonum which suggests some parsing error")
 
 # Function to extract EXIF data and confirm location/time consistency
+cols <- c(ImageDescription = NA_character_)
+
 process_images <- function(files) {
-  exif_data <- lapply(files, read_exif) |>
-    bind_rows() |>
+  exif_data <- lapply(files, 
+                      function(x) 
+                        select(read_exif(x), # use read_exif to import all the metadata
+                               -ShutterSpeedValue)) %>%  # drop shutter speed because some are numeric and some character
+    bind_rows() %>% 
+    add_column(!!!cols[!names(cols) %in% names(.)]) %>% 
     mutate(
       filename = as.character(FileName),
+      exif_caption = ImageDescription,
       gps_latitude = as.numeric(GPSLatitude),
       gps_longitude = as.numeric(GPSLongitude),
       gps_altitude = as.numeric(GPSAltitude),
       gps_position_error = as.numeric(GPSHPositioningError),
+      gps_datestamp = as.character(DateTimeOriginal),
       modify_date = as_datetime(DateTimeOriginal),
       date = as_date(modify_date),
       time = hms(format(modify_date, "%H:%M:%S")),
       offset_time = as.character(OffsetTime),
       image_width = as.numeric(ImageWidth),
       image_height = as.numeric(ImageHeight),
+      exposure_time = as.numeric(ExposureTime),
+      media_group_uuis = as.character(MediaGroupUUID),
       file_type = as.character(FileType),
       .keep = "none")
   
@@ -90,38 +108,64 @@ process_images <- function(files) {
       compare_time = ifelse(sum(diff(exif_data$date)) == 0, TRUE, FALSE)
   
       if(!all(compare_lat, compare_lon, compare_time)) stop(paste("photo differences found for photo",files))
-      return(exif_data[1,])
+  # keep image that has caption information (if any do)
+      
+      keep <- ifelse(
+        sum(!is.na(exif_data$exif_caption))>0, # check if any of these have a non-NA caption
+        which(!is.na(exif_data$exif_caption))[1], # if so, keep the first one 
+      1) #otherwise just keep the first image
+      
+      return(exif_data[keep,])
 }
 
 
-# start cluster for parallel dplyr
-#library(multidplyr)
-#cluster <- new_cluster(3)
+if(F){ # just some EDA stuff 
+  ifiles |> group_by(photonum)|>summarize(n=n(),apple=sum(grepl("Apple",folder)))
+  files=ifiles |>filter(photonum=="IMG_0024")|>select(imagepath) |> unlist() #get vector for testing function above
+}
 
+# Some caption information is held in the exif information (not the json images) due to different processing by apple/google photos.
+# This step pulls the apple photo captions out of the exif information when it's present.
+# Process all the exif information
+ 
 idupes <- ifiles |>
   group_by(photonum) |> 
-  #partition(cluster) |> 
   reframe(
     folder = first(folder), #select first photo folder
     photo_path = first(imagepath), #select first image path
     photo_n = n(), # count number of duplicates of this image
     process_images(imagepath) #extract EXIF information and check time and location
-  ) #|>
-  #collect()
-
-table(idupes$photo_n) #how many copies of photos?
-nrow(idupes) #how many unique photos?
+  ) 
 
 
 # Merging Image and JSON Data
 rfiles2 <- left_join(idupes, jdupes, by = "photonum") #|>
 #  select(photonum, photo_n, json_n, json_identical, json_description)
 
+
+## Add google docs url
+library(googledrive)
+drive_ls(pattern=rfiles2$photonum,
+        #path = "https://drive.google.com/drive/folders/1u8s9oDLiIiy4p9jAJZ3v5w_lo1wQaoxk", 
+        path = "https://drive.google.com/drive/folders/1wtby7i2WO14sAQ6GMGNVzIb_sP0zmyzZ",
+        recursive=T) #0AM9NDepi6IwhUk9PVA
+
+files = drive_ls(path = "https://drive.google.com/drive/folders/1wtby7i2WO14sAQ6GMGNVzIb_sP0zmyzZ",
+         recursive=T) #0AM9NDepi6IwhUk9PVA
+
+
 # View unique descriptions
-unique(rfiles2$json_description)
+if(F) {
+  unique(rfiles2$json_description)
+}
 
 # read in data object from Botanist_photo_processing.qmd script
-tag="vegphoto_v20241102" #paste0("vegphoto_v",format(today(),"%Y%m%d"))
+# this section is a bit circular in the sense that it reads from the Rarefaction_FA spreadsheet to figure out 
+# which photos are already there and then creates data to be added to the spreadsheet (in a different tab).
+
+if(F){ # wrapping in if(F) to avoid running this section because it's not needed for the current task
+
+  tag="vegphoto_v20241102" #paste0("vegphoto_v",format(today(),"%Y%m%d"))
 photo_all_file=paste0("data/photo_all_",tag,".csv")
 pb_download(file=basename(photo_all_file),tag=tag,dest = "data")
 
@@ -134,44 +178,189 @@ photo_all <- read_csv(photo_all_file) |>
       str_remove("\\.[a-zA-Z0-9]+$")) |> # remove third file extension (e.g. ".HEIC.json")
   filter(botanist=="Ross") #remove videos and other files
 
+# confirm all photos in this new processing are already in the existing spreadsheet
+# this is to confirm we can just delete/ignore the old version of Ross' files
+afiles <- anti_join(photo_all,rfiles2,by="photonum") #find photos in old spreadsheet that are not in new batch
+afiles$filename
+# so these are just png screenshots and not photos we need to worry about.
 
-# find which photos are not in the primary spreadsheet
-rfiles3 <-  anti_join(rfiles2,photo_all,by="photonum") #find photos in ross_files2 that are not in photo_all
+#  ----- 
+# We can safely ignore the 'old' Ross photo spreadsheet 
+#  ------ 
+#     \   ^__^ 
+#      \  (oo)\ ________ 
+#         (__)\         )\ /\ 
+#              ||------w|
+#              ||      ||
 
-#clean up description field  
-rfiles4 <- rfiles3 |>
-  separate(json_description, into = c("location", "plot_number", "genus","species"), sep = "\\.",extra="merge")
+# so we don't need this section
+}
 
-# Add/update fields found in other photo spreadsheet including parsing the json description field
 
-#       lat <- ifelse(sum(diff(exif_data$gps_latitude)) == 0, TRUE, FALSE)
-# lon <- ifelse(sum(diff(exif_data$gps_longitude)) == 0, TRUE, FALSE)
-# time <- ifelse(sum(diff(exif_data$date)) == 0, TRUE, FALSE)
-#  [1] "folder"                "filename"              "description"           "location"             
-# [5] "plot_number"           "genus"                 "species"               "plot_photo"           
-# [9] "inat_photo"            "rarefaction_photo"     "rarefaction_replicate" "gps_latitude"         
-# [13] "gps_longitude"         "gps_altitude"          "gps_position_error"    "modify_date"          
-# [17] "date"                  "time"                  "offset_time"           "image_width"          
-# [21] "image_height"          "gps_datestamp"         "file_type"             "media_group_uuid"     
-# [25] "file_base"             "botanist"              "id"                    "file_url"             
-# [29] "datetime"              "photo_type" 
 
-# folder = basename(FileName),
-# description = NA,
-# location = NA,
-# plot_number = NA,
-# genus = NA,
-# species = NA,
-# plot_photo = ,
-# inat_photo = ,
-# rarefaction_photo = ,
-# rarefaction_replicate = ,
-#      gps_datestamp = ) %>% #,
-#      file_type = ,
-#      media_group_uuid = ,
-#      file_base = ,
-#      botanist = "Ross",
-#      id = ,
-#      file_url = ,
-#      datetime = ,
-#      photo_type = )
+
+if(F){
+  View(rfiles2)
+  table(idupes$photo_n) #how many copies of photos? 
+  table(rfiles3$photo_n) #how many copies of photos? 
+  nrow(idupes) #how many unique photos?
+  unique(idupes$exif_caption)
+}
+
+
+
+# build the 'final' ross photo spreadsheet like the ones from the other botanists.
+# this list came from looking through a temporary version of the table below and identifying photos with descriptions
+# that did not include the location or plot.
+noloc= paste0("IMG_",sprintf("%04d",c(35:62,79:81,83:91,93:98,110:125,127:135,1608:1611,2299:2300)))
+jloc = paste0("IMG_",sprintf("%04d",c(2180:2213)))
+
+rfiles3 <- rfiles2 |>
+  rowwise() |>
+  mutate(description=ifelse(
+    is.na(exif_caption),json_description,exif_caption)) |> #use exif_caption if it exists, otherwise json_description
+  mutate(twovar = photonum %in% noloc,
+         location = NA,
+         plot_number = NA, 
+         genus = NA, 
+         species = NA)
+
+
+rfiles3a <- filter(rfiles3,photonum %in% noloc)|>
+  # Separate for nonstandard genus.species notation
+  separate(description, into = c("genus","species"), sep = "\\.|_",extra="merge",remove = F, fill = "right")
+
+rfiles3b <- filter(rfiles3,!photonum %in% noloc & !photonum%in%jloc)|>
+  # Separate for typical location.plot.genus.species notation
+  mutate(desc1 = if_else(!photonum %in% noloc, description, NA_character_)) |>
+  separate(desc1, into = c("location", "plot_number", "genus","species"), sep = "\\.|_",extra="merge",remove = F, fill = "right")
+
+rfiles3c <- filter(rfiles3,photonum %in% jloc)|>
+  # Separate for nonstandard jplot notation like Rooiberg.37.[J5].S.1
+  mutate(desc1 = if_else(!photonum %in% noloc, description, NA_character_)) |>
+  separate(desc1, into = c("location", "plot_number","jplot", "genus","species"), sep = "\\.|_",extra="merge",remove = F, fill = "right")|>
+  mutate(plot_number=paste(plot_number,jplot,sep=" "))|>
+  select(-jplot)
+
+  
+
+rfiles4 <- bind_rows(rfiles3a,rfiles3b,rfiles3c) |>
+  mutate(
+    # next line does some manual processing to account irregular descriptions
+    plot_photo=ifelse(genus%in%c("South","North","East","West","N","S","E","W","plot","View","view","Center","Centre","centre","center","setting","cairn","Adjacent","webbing","magnet","plot"),1,NA),
+    rarefaction_start = if_else(grepl("arefaction", description)&is.na(plot_photo)&!grepl("end", description)&!grepl("add.to.",description), 1, 0),
+    # Propagate the indicator to rows within 10 minutes of a "rarefaction" entry
+    last_rarefaction_time = if_else(rarefaction_start == 1, modify_date, as.POSIXct(NA)),
+    last_rarefaction_time = zoo::na.locf(last_rarefaction_time, na.rm = FALSE), # Fill down the last rarefaction time
+    # Add an indicator variable for rows within 10 minutes of the last rarefaction
+    rarefaction_min = if_else(
+      !is.na(last_rarefaction_time) & abs(difftime(last_rarefaction_time, modify_date, units = "mins"))<=10,
+      as.numeric(abs(difftime(last_rarefaction_time, modify_date, units = "mins"))), NA),
+    rarefaction_photo=ifelse(rarefaction_min<10,1,NA)) |>
+  #  separate(description, into = c("location", "plot_number", "genus","species"), sep = "\\.|_",extra="merge",remove = F) %>% 
+  transmute(folder=str_replace(folder,"/Users/adamw/Library/CloudStorage/GoogleDrive-adammichaelwilson@gmail.com/Shared drives/",""),
+            filename=filename,
+            description=description,
+            location=location,
+            plot_number=plot_number,
+            genus=genus,
+            species=species,
+            plot_photo,
+            inat_photo=NA,
+            rarefaction_photo,
+            rarefaction_replicate=ifelse(rarefaction_photo==1,1,NA),
+            gps_latitude,
+            gps_longitude,
+            gps_altitude,
+            gps_position_error,
+            modify_date,
+            date,
+            time,
+            offset_time=as.character(offset_time),
+            image_width,
+            image_height,
+            gps_datestamp,
+            file_type,
+            media_group_uuid=NA,
+            exposure_time,
+            file_base=photonum,
+            botanist="Ross",
+            id=NA,
+            file_url=NA) |>
+  st_as_sf(coords=c("gps_longitude","gps_latitude"),remove = F) |>
+  st_set_crs(4326) |>
+  arrange(gps_datestamp)
+
+
+
+# Write Ross Files to Disk
+write_csv(rfiles4,"data/ross_photos2.csv")
+
+
+
+### Explore spatial data intersection
+
+if(F) {
+  rfiles4|>
+    select(folder,photonum,description,twovar,location,plot_number,genus,species)|>
+#      select(folder,gps_datestamp,exif_caption, json_description,location,plot_number,genus,species,plot_photo,inat_photo,rarefaction_start,last_rarefaction_time,within_10min)|>
+#    select(gps_datestamp,description,plot_number,genus,species,plot_photo,inat_photo,rarefaction_start,rarefaction_min,rarefaction_photo)|>
+    View()
+}
+  
+# Compare plot locations using coordinates
+dists=st_distance(rfiles4, plots) %>% 
+  tibble() |>
+  rowwise() |>
+  mutate(dist_to_plot_m=apply(.,1,min),
+         min_which=apply(.,1,which.min),
+         distplot=plots$BScpPID[min_which]) |>
+  select(distplot,dist_to_plot_m)
+
+rfiles5 <-  rfiles4 |>
+    st_transform(st_crs(plots)) |>
+    st_join(select(plots,BScpPID),st_nearest_feature) |>
+    bind_cols(dists)
+
+
+if(F){
+select(rfiles5,BScpPID,distplot,dist_to_plot_m)|> View()
+identical(rfiles5$distplot,rfiles5$BScpPID) #check if the nearest plot is the same as the plot in the spatial data)
+#    st_distance(select(plots,BScpPID))
+}  
+
+
+if(F){
+  
+# Plot histogram of distance to plot
+    rfiles5 |>
+    filter(dist_to_plot_m<100) |>
+    ggplot(aes(x=dist_to_plot_m))+ 
+    geom_histogram()
+
+  # plot map of photos and plots
+  rfiles5 |>
+  ggplot()+ #show ross' plots
+    geom_sf(data=plots,col="blue",size=3)+
+    geom_sf(col="red")
+    
+  
+  View(select(rfiles5,plot_number,BScpPID))
+
+  select(rfiles5,plot_number,BScpPID)|>
+    st_set_geometry(NULL)|>
+    mutate(BScpPID2=as.numeric(gsub("T","",BScpPID)))|>
+    filter(BScpPID2!=plot_number)|>
+    distinct()|>
+    View()
+}
+  
+# ----- 
+#   The plot numbers match the spatial data!
+# ------ 
+# \   ^__^ 
+# \  (oo)\ ________ 
+#    (__)\         )\ /\ 
+#       ||------w|
+#       ||      ||
+
