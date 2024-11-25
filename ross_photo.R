@@ -5,10 +5,6 @@ library(exifr)
 library(lubridate)
 library(sf)
 
-# download spatial data
-pb_download(file="BioScapeSpatialProducts2024_11_12.zip",dest = "data")
-unzip("data/BioScapeSpatialProducts2024_11_12.zip",exdir = "data/spatial")
-plots=read_sf("data/spatial/BioSCapeVegCenters2024_11_12.shp")
 
 # folders downloaded to local disk from google drive folder
 # 
@@ -143,20 +139,34 @@ rfiles2 <- left_join(idupes, jdupes, by = "photonum") #|>
 #  select(photonum, photo_n, json_n, json_identical, json_description)
 
 
-## Add google docs url
+if(F){
+## Get google docs url of original files
 library(googledrive)
-drive_ls(pattern=rfiles2$photonum,
-        #path = "https://drive.google.com/drive/folders/1u8s9oDLiIiy4p9jAJZ3v5w_lo1wQaoxk", 
-        path = "https://drive.google.com/drive/folders/1wtby7i2WO14sAQ6GMGNVzIb_sP0zmyzZ",
-        recursive=T) #0AM9NDepi6IwhUk9PVA
 
-files = drive_ls(path = "https://drive.google.com/drive/folders/1wtby7i2WO14sAQ6GMGNVzIb_sP0zmyzZ",
-         recursive=T) #0AM9NDepi6IwhUk9PVA
+dirs = c("https://drive.google.com/drive/folders/1VldWJhmmjV_bCwugv6zKi5FXo_uwiNuT", #bioscape1_ross
+         "https://drive.google.com/drive/folders/1wtby7i2WO14sAQ6GMGNVzIb_sP0zmyzZ", #bioscape1_ross(1),
+         "https://drive.google.com/drive/folders/11WBRLpBMq3x5DYmypcQP13MGoNenhlYS") #bioscape1_ross_applephoto
+
+# Get all files in the folders using google interface
+ross_drive_files = lapply(dirs, function(x) drive_ls(path = x,recursive=T))|>
+  bind_rows()
+
+# join with local data
+rfiles2a <- rfiles2 |>
+  left_join(ross_drive_files, by = c("filename" = "name"))
+
+# check for missing files
+rfiles2a[is.na(rfiles2a$id),]|> View()
+
+# the code above results in some, but not all google file IDs for some reason.  Since we're going to reorganize them anyways, I'm not including this in the output.
+}
 
 
 # View unique descriptions
 if(F) {
   unique(rfiles2$json_description)
+  
+  filter(rfiles2,filename=="IMG_0020.HEIC")
 }
 
 # read in data object from Botanist_photo_processing.qmd script
@@ -165,7 +175,7 @@ if(F) {
 
 if(F){ # wrapping in if(F) to avoid running this section because it's not needed for the current task
 
-  tag="vegphoto_v20241102" #paste0("vegphoto_v",format(today(),"%Y%m%d"))
+tag="vegphoto_v20241102" #paste0("vegphoto_v",format(today(),"%Y%m%d"))
 photo_all_file=paste0("data/photo_all_",tag,".csv")
 pb_download(file=basename(photo_all_file),tag=tag,dest = "data")
 
@@ -265,9 +275,9 @@ rfiles4 <- bind_rows(rfiles3a,rfiles3b,rfiles3c) |>
             plot_number=plot_number,
             genus=genus,
             species=species,
-            plot_photo,
+            plot_photo=as.numeric(plot_photo),
             inat_photo=NA,
-            rarefaction_photo,
+            rarefaction_photo=as.numeric(rarefaction_photo),
             rarefaction_replicate=ifelse(rarefaction_photo==1,1,NA),
             gps_latitude,
             gps_longitude,
@@ -294,73 +304,7 @@ rfiles4 <- bind_rows(rfiles3a,rfiles3b,rfiles3c) |>
 
 
 # Write Ross Files to Disk
-write_csv(rfiles4,"data/ross_photos2.csv")
+write_csv(rfiles4,"data/ross_photos2.csv",na="")
 
 
-
-### Explore spatial data intersection
-
-if(F) {
-  rfiles4|>
-    select(folder,photonum,description,twovar,location,plot_number,genus,species)|>
-#      select(folder,gps_datestamp,exif_caption, json_description,location,plot_number,genus,species,plot_photo,inat_photo,rarefaction_start,last_rarefaction_time,within_10min)|>
-#    select(gps_datestamp,description,plot_number,genus,species,plot_photo,inat_photo,rarefaction_start,rarefaction_min,rarefaction_photo)|>
-    View()
-}
-  
-# Compare plot locations using coordinates
-dists=st_distance(rfiles4, plots) %>% 
-  tibble() |>
-  rowwise() |>
-  mutate(dist_to_plot_m=apply(.,1,min),
-         min_which=apply(.,1,which.min),
-         distplot=plots$BScpPID[min_which]) |>
-  select(distplot,dist_to_plot_m)
-
-rfiles5 <-  rfiles4 |>
-    st_transform(st_crs(plots)) |>
-    st_join(select(plots,BScpPID),st_nearest_feature) |>
-    bind_cols(dists)
-
-
-if(F){
-select(rfiles5,BScpPID,distplot,dist_to_plot_m)|> View()
-identical(rfiles5$distplot,rfiles5$BScpPID) #check if the nearest plot is the same as the plot in the spatial data)
-#    st_distance(select(plots,BScpPID))
-}  
-
-
-if(F){
-  
-# Plot histogram of distance to plot
-    rfiles5 |>
-    filter(dist_to_plot_m<100) |>
-    ggplot(aes(x=dist_to_plot_m))+ 
-    geom_histogram()
-
-  # plot map of photos and plots
-  rfiles5 |>
-  ggplot()+ #show ross' plots
-    geom_sf(data=plots,col="blue",size=3)+
-    geom_sf(col="red")
-    
-  
-  View(select(rfiles5,plot_number,BScpPID))
-
-  select(rfiles5,plot_number,BScpPID)|>
-    st_set_geometry(NULL)|>
-    mutate(BScpPID2=as.numeric(gsub("T","",BScpPID)))|>
-    filter(BScpPID2!=plot_number)|>
-    distinct()|>
-    View()
-}
-  
-# ----- 
-#   The plot numbers match the spatial data!
-# ------ 
-# \   ^__^ 
-# \  (oo)\ ________ 
-#    (__)\         )\ /\ 
-#       ||------w|
-#       ||      ||
 

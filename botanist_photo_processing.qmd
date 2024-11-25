@@ -17,6 +17,8 @@ library(googledrive)
 library(readxl)
 library(knitr)
 library(piggyback)
+library(leaflet)
+library(magick)
 
 tag=paste0("vegphoto_v",format(today(),"%Y%m%d"))
 pb_new_release("BioSCape-io/BioSCape-terrestrial",tag=tag)
@@ -53,6 +55,11 @@ photo_all=foreach(i=sheets,.combine=bind_rows) %do% {
       datetime = as_datetime(fdate2),       # Convert to datetime and extract the date using as_date
       date = date(datetime),       # extract just date
       time = hms(format(datetime, "%H:%M:%S")),  # get just time part from the datetime
+      gps_latitude=as.numeric(gps_latitude),
+      gps_longitude=as.numeric(gps_longitude),
+      gps_altitude=as.numeric(gps_altitude),
+      gps_position_error=as.numeric(gps_position_error),
+      modify_date=as_datetime(modify_date),
       plot_number=as.character(plot_number),
       photo_type=case_when(
         grepl("plot|S|N|W|E|start|rarefaction|end|stop",fixed=F,genus) ~ "plot",
@@ -60,8 +67,62 @@ photo_all=foreach(i=sheets,.combine=bind_rows) %do% {
         ),
       ) |>
     select(-fdate,-fdate2) |>  # drop temporary columns
-    select(-exposure_time) #drop exposure time due to irregularity and not needed.
-} 
+    select(-exposure_time) |> #drop exposure time due to irregularity and not needed.
+    filter(!is.na(gps_longitude)&!is.na(gps_latitude)) |> # this drops a few random screenshots
+    st_as_sf(coords=c("gps_longitude","gps_latitude"),
+           crs=4326) 
+    } 
+
+```
+
+### Explore spatial data intersection
+
+```{r}
+# download spatial data
+pb_download(file="BioScapeSpatialProducts2024_11_12.zip",dest = "data")
+unzip("data/BioScapeSpatialProducts2024_11_12.zip",exdir = "data/spatial")
+plots=read_sf("data/spatial/BioSCapeVegCenters2024_11_12.shp")
+homogeneous=read_sf("data/spatial/BioSCapeVegPolys2024_11_12.shp")
+
+
+dists=st_distance(photo_all, plots) %>% 
+  tibble() |>
+  rowwise() |>
+  mutate(dist_to_plot_m=apply(.,1,min),
+         min_which=apply(.,1,which.min),
+         distplot=plots$BScpPID[min_which]) |>
+  select(distplot,dist_to_plot_m)
+
+photo_all2 <-  photo_all |>
+     st_transform(st_crs(plots)) |>
+     st_join(select(plots,BScpPID),st_nearest_feature) |>
+     bind_cols(dists)
+
+
+if(F){
+select(photo_all2,BScpPID,distplot,dist_to_plot_m)|> View()
+identical(photo_all2$distplot,photo_all2$BScpPID) #check if the nearest plot is the same as the plot in the spatial data)
+}
+# Plot histogram of distance to plot
+    photo_all2 |>
+    filter(dist_to_plot_m<50) |>
+    ggplot(aes(x=dist_to_plot_m))+ 
+    geom_histogram(binwidth=0.1)
+
+```
+
+
+# Plot identification issues
+The following table shows plots that were labeled differently in the photo data compared to the spatial data. This could be due to a mislabeling in the photo data or a mislabeling in the spatial data. 
+
+```{r}
+select(photo_all2,plot_number,BScpPID)|>
+    st_set_geometry(NULL)|>
+    mutate(BScpPID2=as.numeric(gsub("T","",BScpPID)),
+           plot_number=as.numeric(plot_number))|>
+    filter(is.na(plot_number) | BScpPID2!=plot_number)|>
+    distinct()|>
+    kable()
 
 ```
 
@@ -70,16 +131,85 @@ photo_all=foreach(i=sheets,.combine=bind_rows) %do% {
 
 ```{r}
 photo_all_file=paste0("data/photo_all_",tag,".csv")
-write_csv(photo_all,photo_all_file)
+write_csv(photo_all2,photo_all_file)
 
 # upload to github release is manual - run the pb_upload command if desired
 if (F) pb_upload(photo_all_file,tag=tag)
 
 ```
 
+## Rename and organize all photos
+
+```{r}
+
+photo_all3 <- photo_all2 |>
+  mutate(
+    newfile=paste0(BScpPID,"/",BScpPID,"_",photo_type,"_",format(datetime,"%Y%m%d_%H%M%S"),".jpeg"),
+    thumbfile=paste0(BScpPID,"/",BScpPID,"_",photo_type,"_",format(datetime,"%Y%m%d_%H%M%S"),"_thumb.jpeg")
+    )
+
+output_folder="data/photo_out/"
+
+# Define the standard size (e.g., 800x600 pixels)
+standard_width <- 800
+standard_height <- 600
+
+foreach(i=1:nrow(photo_all3)) %do% {
+ input_file= file.path("/Users/adamw/Library/CloudStorage/GoogleDrive-adammichaelwilson@gmail.com/Shared drives",photo_all3$folder[i],photo_all3$filename[i])
+ output_file=file.path(outdir,photo_all3$newfile[i])
+ output_thumb=file.path(outdir,photo_all3$thumbfile[i])
+ 
+ if(!dir.exists(dirname(output_file))) dir.create(dirname(output_file),recursive = T)
+ 
+ img <- image_read(input_file)
+# Resize the image to the standard size
+ thumb <- image_resize(img, paste0(standard_width, "x", standard_height))
+  
+    # Save the image as .jpeg
+  image_write(img, output_file, format = "jpeg")
+  image_write(thumb, output_thumb, format = "jpeg")
+  
+  # Print progress
+  cat("Converted:", input_file, "->", output_file, "\n")
+
+  }
+
+
+
+#View(photo_all3)
+
 ```{r}
 kable(head(photo_all))
 ```
+
+
+
+# Map of plot locations with photos
+```{r, echo=F}
+
+# Create a leaflet map
+leaflet() %>%
+  #addProviderTiles("Esri.WorldImagery",tileOptions(maxZoom = 50)) %>%
+  addWMSTiles(
+    baseUrl = "http://aerial.openstreetmap.org.za/ngi-aerial/{z}/{x}/{y}.jpg",  # Replace with your WMS URL
+    layers = "ngi-aerial",  # Replace with the desired WMS layer name
+    options = WMSTileOptions(format = "image/jpg", transparent = TRUE,maxZoom=22),
+    attribution = "© SA CDNGI Geospatial 25cm"
+  ) %>% 
+  addPolygons(data=homogeneous,fillColor="blue",fillOpacity=0.2,
+              popup = ~paste("Region: ",homogeneous$Region,
+                             "<br>Plot: ",homogeneous$BScpPID)) %>%
+  addCircleMarkers(data=photo_all2,#lng=photo_all2$gps_longitude,lat=photo_all2$gps_latitude,
+                   popup=~paste("Plot:",photo_all2$plot_number,"<br>Photo Description:",photo_all2$description,"<br>Genus:",photo_all2$genus,"<br>Species:",photo_all2$species,
+                                "<br> <img src='data/photo_out/",photo_all3$thumbfile , "' style='width:150px;height:auto;'>"),
+                   color="red",radius=1) %>%
+  addCircleMarkers(data=plots,lng=st_coordinates(plots)[,"X"], lat=st_coordinates(plots)[,"Y"],
+                   popup=~BScpPID,
+                   color="blue",radius=3)
+
+ 
+```
+
 
 ## Process Rarefaction photos
 
