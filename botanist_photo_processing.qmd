@@ -1,7 +1,6 @@
 ---
 title: "BioSCape Photo Processing"
 format: gfm
-editor: visual
 ---
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}

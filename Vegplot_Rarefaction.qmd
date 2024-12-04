@@ -14,7 +14,7 @@ execute:
   message: false
 ---
 
-## Introduction
+## Summary
 
 This analysis processes vegetation rarefaction photography data to derive insights about species discovery over time and across different plots. The data includes vegetation photos taken at different plots, with each photo representing a unique species observation. The analysis includes the following steps:
 
@@ -416,7 +416,6 @@ ggplot(aes(x = total_cover, y = rarefaction_n_10min)) +
 
 # Known Issues
 
-* Some plots have very high (unrealistic) estimates of total species richness (Smax) due to the model fit. These estimates should be interpreted with caution.
-* Some plots have multiple rarefaction replicates, which may affect the model fit and estimates of total species richness.
-* Some plots may have duplicate photos of the same species - we will go through to ensure there is no double counting
-* 
+* Some plots have very high (unrealistic) estimates of total species richness (Smax) due to the continuous new observations until the end of the 10-minute period. These estimates should be interpreted with caution.  The `rarefaction_n_10min` and `rarefaction_n_5min` estimates are more reliable though underestimate total richness.
+* Some plots have multiple rarefaction replicates (the botanist recorded multiple short rarefaction sequencies rather than one 10-minute sequence.  These plots can be removed by filtering to `rarefaction_replicates==1`.
+* Some plots may have duplicate photos of the same species - we will go through to ensure there is no double counting of species in the final analysis.
