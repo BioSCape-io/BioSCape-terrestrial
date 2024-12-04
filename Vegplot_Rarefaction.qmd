@@ -3,7 +3,7 @@ title: "BioSCape Vegetation Plot Photo Rarefaction"
 author: "Adam M. Wilson, Jasper Slingsby, and the BioSCape Team"
 date: "`r Sys.Date()`"
 format:
-  html:
+  gfm:
     toc: true
     toc-depth: 3
     code-fold: true
@@ -26,7 +26,7 @@ This analysis processes vegetation rarefaction photography data to derive insigh
 6. **Upload to Github Release**: Publish preliminary version for review
 
 
-```{r, echo=F}
+```{r}
 # Load necessary libraries
 library(tidyverse)
 library(vegan)
@@ -62,8 +62,8 @@ vdata=read_csv(file.path("data",vdatafile))
 
 ```
 
-```{r, echo=F}
 # Summarize vegetation cover data
+```{r}
 vdatas=vdata %>% 
   group_by(Plot) %>% 
   summarize(n_species=n_distinct(Genus_Species_combo),
@@ -74,7 +74,7 @@ vdatas=vdata %>%
 
 ```
 
-```{r, echo=F}
+```{r}
 # Transforming Rarefaction Data
 rdata <- data %>%
   group_by(BScpPID, rarefaction_replicate) %>%
@@ -102,7 +102,7 @@ rdatas <- rdata %>%
 
 
 # Plot and Photo locations
-```{r, echo=F}
+```{r}
 
 # Create a leaflet map
 leaflet() %>%
@@ -170,13 +170,19 @@ data_binned %>%
 
 In addition the raw data, we also fit a Michaelis-Menten model to each site’s species accumulation curve using nls.
 
-S_{\text{obs}} = \frac{S_{\text{max}} \cdot \text{effort}}{K + \text{effort}}
+$$
+S_{\text{obs}} = \frac{S_{\text{max}} \cdot \text{effort}}{B + \text{effort}}
+$$
 
-S_n ~ Number of species observed after n units of sampling
-Smax ~ Total number of species in the pool
-K ~ Sampling effort needed to detect 50% of those species
+Where:
 
-```{r, echo=F}
+$S_{\text{obs}}$ ~ Number of species observed after n units of sampling
+$S_max$ ~ Total number of species in the pool
+$B$ ~ Sampling effort needed to detect 50% of those species
+$effort$ ~ Sampling effort (time in minutes)
+
+
+```{r}
 d1 <- st_set_geometry(rdata,NULL) %>% 
   group_by(BScpPID)
 
@@ -258,7 +264,7 @@ vegphoto_rarefied_plot <- rdatas %>%
 * count - cumulative count of unique species observed in the rarefaction sequence
 * botanist - name of the botanist who took the photo
 
-```{r, echo=F}
+```{r}
 vegphoto_rarefied_photo |>
   ungroup() |>
   slice(1:20) |>
@@ -277,16 +283,16 @@ vegphoto_rarefied_photo |>
 * Smax - estimated total species richness in the pool from the rarefaction. Note that some plots have very high (unrealisitic) values for this field.
 * B - sampling effort needed to detect 50% of those species
 
-```{r, echo=F}
+```{r}
 vegphoto_rarefied_plot |>
   slice(1:20) |>
   datatable()
 
 ```
 
-# Build final table and post to Github
 
-```{r, echo=F}
+# Build final table and post to Github
+```{r}
 tagdate=paste0("v",format(today(),"%Y%m%d"))
 tag=paste0("vegphoto_",tagdate)
 
@@ -342,7 +348,31 @@ plot_grid(p1, p2, align = "v", rel_widths = c(.8,.2),axis = "tblr")  # Align hor
 
 Rarefaction curves and estimated species richness for each plot separately.  Dashed lines indicate the 5- and 10-minute rarefaction estimates
 
-```{r, width=15,height=10}
+### Example Curves
+
+```{r}
+
+choose_plots = c("T002","T218","T196")
+predicted_data %>%
+  filter(!is.na(BScpPID) & rarefaction_min < 10, BScpPID%in%choose_plots) %>%
+  ggplot(aes(x = rarefaction_min, y = count, group = plot_number_replicate)) +
+  geom_hline(aes(yintercept = Smax), data = filter(results,BScpPID%in%choose_plots), linetype = "dashed",col="red") +
+  geom_vline(aes(xintercept = B), data = filter(results,BScpPID%in%choose_plots), linetype = "dotted",col="red") +
+  geom_point(col="black") +
+  geom_line(aes(y=predicted_richness),col="red") +
+  geom_hline(aes(yintercept = rarefaction_n_10min), data = filter(rdatas,BScpPID%in%choose_plots), linetype = "dashed") +
+  geom_hline(aes(yintercept = rarefaction_n_5min), data = filter(rdatas,BScpPID%in%choose_plots), linetype = "dashed") +
+  facet_wrap(~BScpPID,nrow = 1) +
+  labs(y = "Rarefaction Photos", x = "Minutes") +
+  scale_x_continuous(lim = c(0, 10), breaks = c(0, 5, 10))+
+  scale_y_continuous(lim = c(0, 100), breaks = c(0, 20, 40, 60, 80, 100))+
+  labs(title="Rarefaction curves by plot" ,subtitle="Dashed lines indicate 5 and 10 minute rarefaction estimates")
+
+```
+
+### All plots
+
+```{r, fig.height=25,fig.width=20}
 predicted_data %>%
   filter(!is.na(BScpPID) & rarefaction_min < 10) %>% #,BScpPID%in%c("T002","T083","T184")) %>%
   ggplot(aes(x = rarefaction_min, y = count, group = plot_number_replicate)) +
@@ -366,7 +396,7 @@ rdatas |>
 ggplot(aes(x = n_species, y = rarefaction_n_10min)) +
   geom_point() +
   geom_smooth(method = "lm") +
-  geom_text(aes(label = BScpPID), nudge_x = 0.5, nudge_y = 0.5) +
+#  geom_text(aes(label = BScpPID), nudge_x = 0.5, nudge_y = 0.5) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
   labs(x = "# Species in Cover Data", y = "# Photos in Rarefaction Data")
 
@@ -383,3 +413,10 @@ ggplot(aes(x = total_cover, y = rarefaction_n_10min)) +
 
 ```
 
+
+# Known Issues
+
+* Some plots have very high (unrealistic) estimates of total species richness (Smax) due to the model fit. These estimates should be interpreted with caution.
+* Some plots have multiple rarefaction replicates, which may affect the model fit and estimates of total species richness.
+* Some plots may have duplicate photos of the same species - we will go through to ensure there is no double counting
+* 
