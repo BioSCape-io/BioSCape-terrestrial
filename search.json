@@ -1,30 +1,65 @@
 [
   {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "BioSCape Terrestrial Data Summary",
+    "objectID": "Vegplot_Rarefaction.html",
+    "href": "Vegplot_Rarefaction.html",
+    "title": "BioSCape Vegetation Plot Photo Rarefaction",
     "section": "",
-    "text": "The following page summarizes the terrestrial vegetation data collected by BioSCape. This page was last updated Tue Aug 22 14:16:59 2023."
+    "text": "This analysis processes vegetation rarefaction photography data to derive insights about species discovery over time and across different plots. The data includes vegetation photos taken at different plots, with each photo representing a unique species observation. The analysis includes the following steps:\n\nData Preparation: Load and preprocess vegetation photo data, including filtering out replicates and calculating time intervals between photos.\nRarefaction Curves: Visualize rarefaction curves for each plot, showing the number of unique species observed over time.\nSpecies Accumulation Curves: Fit a Michaelis-Menten model to each site’s species accumulation curve to estimate total species richness and sampling effort.\nComparison with Dominant Species Richness: Compare rarefaction estimates with dominant species richness from cover data.\nComparison with Total Vegetation Cover: Compare rarefaction estimates with total vegetation cover.\nUpload to Github Release: Publish preliminary version for review\n\n\n\nShow the code\n# Load necessary libraries\nlibrary(tidyverse)\nlibrary(vegan)\nlibrary(sf)\nlibrary(piggyback)\nlibrary(broom)\nlibrary(leaflet)\nlibrary(cowplot)\nlibrary(DT)\n# Downloading Data\nphoto_all_file &lt;- paste0(\"data/\", \"vegphoto_v20241126\", \".csv\")\npb_download(file = \"vegphoto_v20241126.csv\", dest = \"data\", tag = \"vegphoto_v20241126\")\ndata &lt;- read_csv(photo_all_file) %&gt;% \n  st_as_sf(crs = 4326, coords = c(\"gps_longitude\", \"gps_latitude\"))\n\n\n# Download spatial data\npb_download(file=\"BioScapeSpatialProducts2024_11_12.zip\",dest = \"data\")\nunzip(\"data/BioScapeSpatialProducts2024_11_12.zip\",exdir = \"data/spatial\")\n\n\nplots=read_sf(\"data/spatial/BioSCapeVegCenters2024_11_12.shp\")\nhomogeneous=read_sf(\"data/spatial/BioSCapeVegPolys2024_11_12.shp\")\n\n# download vegplot cover data\npdatafile=\"bioscape_veg_plot_summary_v20241104.csv\"\npb_download(file=pdatafile,tag=\"v20241104\",dest = \"data\")\npdata=read_csv(file.path(\"data\",pdatafile))\n\nvdatafile=\"bioscape_veg_plot_species_v20241104.csv\"\npb_download(file=vdatafile,tag=\"v20241104\",dest = \"data\")\nvdata=read_csv(file.path(\"data\",vdatafile))"
   },
   {
-    "objectID": "index.html#map-of-plot-locations-and-status",
-    "href": "index.html#map-of-plot-locations-and-status",
-    "title": "BioSCape Terrestrial Data Summary",
-    "section": "Map of Plot Locations and Status",
-    "text": "Map of Plot Locations and Status\nCurrently 24 have been sampled. They are shown in the map below."
+    "objectID": "Vegplot_Rarefaction.html#data-description",
+    "href": "Vegplot_Rarefaction.html#data-description",
+    "title": "BioSCape Vegetation Plot Photo Rarefaction",
+    "section": "Data description",
+    "text": "Data description\nThe rarefaction data are shared in two formats: photo-level data and plot-level data. The photo-level data include information about each photo taken, including the plot, species observed, and time of observation. The plot-level data summarize the rarefaction data for each plot, including the estimated species richness and sampling effort.\n\n\nShow the code\n# Assemble and organize photo-level data\nvegphoto_rarefied_photo &lt;- rdata %&gt;%\n  select(BScpPID, description, genus, species, species_replicate, datetime, time, \n         rarefaction_time, rarefaction_min, rarefaction_replicate, count, botanist)\n\n# Assemble and simplify plot data \nvegphoto_rarefied_plot &lt;- rdatas %&gt;%\n  left_join(select(results,BScpPID,Smax,B), by = \"BScpPID\") %&gt;%\n  select(BScpPID, datetime_start, \n         rarefaction_n_5min, rarefaction_n_10min, rarefaction_n_max, rarefaction_replicates,\n         Smax, B)\n\n\n\nvegphoto_rarefied_photo - Column descriptions\n\nBScpPID - plot id aligned with spatial vegplot data\ndescription - original caption entered by the botanists in the field\ngenus - genus of the observed species (when available)\nspecies - species of the observed species (when available)\nspecies_replicate - flag indicating if the species is a replicate photo and should be filtered\ndatetime - date and time of the photo\ntime - time of day of the photo\nrarefaction_time - time since the first photo in the rarefaction sequence\nrarefaction_min - time since the first photo in the rarefaction sequence in minutes\nrarefaction_replicate - replicate number of the rarefaction sequence (some botanists recorded 4 separate rarefaction sequences, unfortunately)\ncount - cumulative count of unique species observed in the rarefaction sequence\nbotanist - name of the botanist who took the photo\n\n\n\nShow the code\nvegphoto_rarefied_photo |&gt;\n  ungroup() |&gt;\n  slice(1:20) |&gt;\n  datatable()\n\n\n\n\n\n\n\n\nvegphoto_rarefied_plot - Column descriptions\n\nBScpPID - plot id aligned with spatial vegplot data\ndatetime_start - date and time of the first photo in the rarefaction sequence\nrarefaction_n_5min - estimated species richness after 5 minutes of sampling\nrarefaction_n_10min - estimated species richness after 10 minutes of sampling\nrarefaction_n_max - maximum estimated species richness in the rarefaction sequence\nrarefaction_replicates - number of replicates in the rarefaction sequence (some botanists recorded 4 separate rarefaction sequences - filter to values equal to 1 to avoid these plots)\nSmax - estimated total species richness in the pool from the rarefaction. Note that some plots have very high (unrealisitic) values for this field.\nB - sampling effort needed to detect 50% of those species\n\n\n\nShow the code\nvegphoto_rarefied_plot |&gt;\n  slice(1:20) |&gt;\n  datatable()"
   },
   {
-    "objectID": "index.html#rarefaction-curves",
-    "href": "index.html#rarefaction-curves",
-    "title": "BioSCape Terrestrial Data Summary",
-    "section": "Rarefaction Curves",
-    "text": "Rarefaction Curves\n\n\n\nThe plot below shows the species accumulation curve of the plots collected so far."
+    "objectID": "Vegplot_Rarefaction.html#rarefaction-estimates-compared-to-dominant-species-richness",
+    "href": "Vegplot_Rarefaction.html#rarefaction-estimates-compared-to-dominant-species-richness",
+    "title": "BioSCape Vegetation Plot Photo Rarefaction",
+    "section": "Rarefaction estimates compared to Dominant Species Richness",
+    "text": "Rarefaction estimates compared to Dominant Species Richness\n\n\nShow the code\nrdatas |&gt;\nggplot(aes(x = n_species, y = rarefaction_n_10min)) +\n  geom_point() +\n  geom_smooth(method = \"lm\") +\n#  geom_text(aes(label = BScpPID), nudge_x = 0.5, nudge_y = 0.5) +\n  geom_abline(intercept = 0, slope = 1, linetype = \"dashed\") +\n  labs(x = \"# Species in Cover Data\", y = \"# Photos in Rarefaction Data\")"
   },
   {
-    "objectID": "about.html",
-    "href": "about.html",
-    "title": "About",
+    "objectID": "Vegplot_Rarefaction.html#rarefaction-estimates-compared-to-total-vegetation-cover",
+    "href": "Vegplot_Rarefaction.html#rarefaction-estimates-compared-to-total-vegetation-cover",
+    "title": "BioSCape Vegetation Plot Photo Rarefaction",
+    "section": "Rarefaction estimates compared to total vegetation cover",
+    "text": "Rarefaction estimates compared to total vegetation cover\n\n\nShow the code\nrdatas |&gt;\nggplot(aes(x = total_cover, y = rarefaction_n_10min)) +\n  geom_point() +\n  geom_smooth(method = \"lm\") +\n  geom_text(aes(label = BScpPID), nudge_x = 0.5, nudge_y = 0.5) +\n  labs(x = \"Total Vegetation Cover (%)\", y = \"# Photos in Rarefaction Data\")"
+  },
+  {
+    "objectID": "botanist_photo_processing.html#download-current-version-of-spreadsheet",
+    "href": "botanist_photo_processing.html#download-current-version-of-spreadsheet",
+    "title": "BioSCape Photo Processing",
+    "section": "Download current version of spreadsheet",
+    "text": "Download current version of spreadsheet"
+  },
+  {
+    "objectID": "botanist_photo_processing.html#get-sheet-names",
+    "href": "botanist_photo_processing.html#get-sheet-names",
+    "title": "BioSCape Photo Processing",
+    "section": "Get sheet names",
+    "text": "Get sheet names\n\n\n\n\nExplore spatial data intersection"
+  },
+  {
+    "objectID": "botanist_photo_processing.html#upload-photo-dataset-to-github-release",
+    "href": "botanist_photo_processing.html#upload-photo-dataset-to-github-release",
+    "title": "BioSCape Photo Processing",
+    "section": "Upload photo dataset to github release",
+    "text": "Upload photo dataset to github release"
+  },
+  {
+    "objectID": "botanist_photo_processing.html#rename-and-organize-all-photos",
+    "href": "botanist_photo_processing.html#rename-and-organize-all-photos",
+    "title": "BioSCape Photo Processing",
+    "section": "Rename and organize all photos",
+    "text": "Rename and organize all photos\n\nphoto_all3 <- photo_all2 |>\n  mutate(\n    newfile=paste0(BScpPID,\"/\",BScpPID,\"_\",photo_type,\"_\",format(datetime,\"%Y%m%d_%H%M%S\"),\".jpeg\"),\n    thumbfile=paste0(BScpPID,\"/\",BScpPID,\"_\",photo_type,\"_\",format(datetime,\"%Y%m%d_%H%M%S\"),\"_thumb.jpeg\")\n    )\n\noutput_folder=\"data/photo_out/\"\n\n# Define the standard size (e.g., 800x600 pixels)\nstandard_width <- 800\nstandard_height <- 800\n\nforeach(i=1:nrow(photo_all3)) %do% {\n input_file= file.path(\"/Users/adamw/Library/CloudStorage/GoogleDrive-adammichaelwilson@gmail.com/Shared drives\",photo_all3$folder[i],photo_all3$filename[i])\n output_file=file.path(output_folder,photo_all3$newfile[i])\n output_thumb=file.path(output_folder,photo_all3$thumbfile[i])\n \n if(!dir.exists(dirname(output_file))) dir.create(dirname(output_file),recursive = T)\n \n img <- image_read(input_file)\n# Resize the image to the standard size\n thumb <- image_resize(img, paste0(standard_width, \"x\", standard_height))\n  \n    # Save the image as .jpeg\n  image_write(img, output_file, format = \"jpeg\")\n  image_write(thumb, output_thumb, format = \"jpeg\")\n  \n  # update exif information in the new files\n\n    cmd <- list(\n    paste0(\"-overwrite_original -Description='original_path=\", photo_all3$folder[i],\"/\",photo_all3$filename[i],\n           \" description=\",photo_all3$description[i],\n           \" botanist=\",photo_all3$botanist[i],\"'\"),    # original Description\n    paste0(\"-Subject='\", photo_all3$genus[i],\" \",photo_all3$species[i],\"'\"),            # Genus Species\n    paste0(\"-Title='BioSCape \", photo_all3$photo_type[i],\" photo from plot \",photo_all3$BScpPID[i],\"'\"),             # photo type\n    paste0(\"-Keywords='BioSCape,\",photo_all3$botanist[i],\"'\")     # Original filename\n  )\n  \n  # Update metadata in both output images\n  exiftool_call(args = cmd,fnames=output_file)\n  exiftool_call(args = cmd,fnames=output_thumb)\n  \n  #remove the automatic copies\n}"
+  },
+  {
+    "objectID": "Vegplot_Rarefaction.html#introduction",
+    "href": "Vegplot_Rarefaction.html#introduction",
+    "title": "BioSCape Vegetation Plot Photo Rarefaction",
     "section": "",
-    "text": "About this site\n\n1 + 1\n\n[1] 2"
+    "text": "This analysis processes vegetation rarefaction photography data to derive insights about species discovery over time and across different plots. The data includes vegetation photos taken at different plots, with each photo representing a unique species observation. The analysis includes the following steps:\n\nData Preparation: Load and preprocess vegetation photo data, including filtering out replicates and calculating time intervals between photos.\nRarefaction Curves: Visualize rarefaction curves for each plot, showing the number of unique species observed over time.\nSpecies Accumulation Curves: Fit a Michaelis-Menten model to each site’s species accumulation curve to estimate total species richness and sampling effort.\nComparison with Dominant Species Richness: Compare rarefaction estimates with dominant species richness from cover data.\nComparison with Total Vegetation Cover: Compare rarefaction estimates with total vegetation cover.\nUpload to Github Release: Publish preliminary version for review\n\n\n\nShow the code\n# Load necessary libraries\nlibrary(tidyverse)\nlibrary(vegan)\nlibrary(sf)\nlibrary(piggyback)\nlibrary(broom)\nlibrary(leaflet)\nlibrary(cowplot)\nlibrary(DT)\n# Downloading Data\nphoto_all_file &lt;- paste0(\"data/\", \"vegphoto_v20241126\", \".csv\")\npb_download(file = \"vegphoto_v20241126.csv\", dest = \"data\", tag = \"vegphoto_v20241126\")\ndata &lt;- read_csv(photo_all_file) %&gt;% \n  st_as_sf(crs = 4326, coords = c(\"gps_longitude\", \"gps_latitude\"))\n\n\n# Download spatial data\npb_download(file=\"BioScapeSpatialProducts2024_11_12.zip\",dest = \"data\")\nunzip(\"data/BioScapeSpatialProducts2024_11_12.zip\",exdir = \"data/spatial\")\n\n\nplots=read_sf(\"data/spatial/BioSCapeVegCenters2024_11_12.shp\")\nhomogeneous=read_sf(\"data/spatial/BioSCapeVegPolys2024_11_12.shp\")\n\n# download vegplot cover data\npdatafile=\"bioscape_veg_plot_summary_v20241104.csv\"\npb_download(file=pdatafile,tag=\"v20241104\",dest = \"data\")\npdata=read_csv(file.path(\"data\",pdatafile))\n\nvdatafile=\"bioscape_veg_plot_species_v20241104.csv\"\npb_download(file=vdatafile,tag=\"v20241104\",dest = \"data\")\nvdata=read_csv(file.path(\"data\",vdatafile))"
   }
 ]
