@@ -5,9 +5,10 @@ website:
   title: "BiOSCape Terrestrial Data"
   navbar:
     left:
-      - href: index.qmd
-        text: Home
-      - about.qmd
+      - href: Vegplot_Rarefaction.qmd
+        text: Rarefaction
+      - href: botanist_photo_processing.qmd
+        text: Botanist Photo Processing
 
 format:
   html:

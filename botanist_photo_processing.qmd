@@ -4,7 +4,7 @@ format: html
 editor: visual
 ---
 
-```{r}
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
 # Load necessary libraries
 library(jsonlite)  # for handling JSON data
 library(exifr)     # for extracting EXIF metadata from image files
@@ -19,16 +19,22 @@ library(knitr)
 library(piggyback)
 library(leaflet)
 library(magick)
+library(DT)
+library(sf)
 
-tag=paste0("vegphoto_v",format(today(),"%Y%m%d"))
+tagdate=paste0("v",format(today(),"%Y%m%d"))
+tag=paste0("vegphoto_",tagdate)
+#tag = "vegphoto_v20241126"
+if(F){
 pb_new_release("BioSCape-io/BioSCape-terrestrial",tag=tag)
+}
 ```
 
 # Process combined photo spreadsheet
 
 ## Download current version of spreadsheet
 
-```{r}
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
 ######### User settings
 if (Sys.getenv("USER") == "jasper") {gmail = "jasper.slingsby@uct.ac.za"}
 if (Sys.getenv("USER") == "adamw") {gmail = "adamw@buffalo.edu"}
@@ -42,9 +48,11 @@ drive_download(sheet_url, path = fname, overwrite = TRUE)
 
 ## Get sheet names
 
-```{r}
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
 sheets = excel_sheets(fname)
 # Read sheets and do a little cleaning for irregularites
+
+sheets=sheets[-1] # Drop the old ross spreadsheet
 
 photo_all=foreach(i=sheets,.combine=bind_rows) %do% {
   read_xlsx(fname,i) %>% 
@@ -69,7 +77,7 @@ photo_all=foreach(i=sheets,.combine=bind_rows) %do% {
     select(-fdate,-fdate2) |>  # drop temporary columns
     select(-exposure_time) |> #drop exposure time due to irregularity and not needed.
     filter(!is.na(gps_longitude)&!is.na(gps_latitude)) |> # this drops a few random screenshots
-    st_as_sf(coords=c("gps_longitude","gps_latitude"),
+    st_as_sf(coords=c("gps_longitude","gps_latitude"),remove=FALSE,
            crs=4326) 
     } 
 
@@ -77,10 +85,14 @@ photo_all=foreach(i=sheets,.combine=bind_rows) %do% {
 
 ### Explore spatial data intersection
 
-```{r}
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
 # download spatial data
 pb_download(file="BioScapeSpatialProducts2024_11_12.zip",dest = "data")
 unzip("data/BioScapeSpatialProducts2024_11_12.zip",exdir = "data/spatial")
+```
+
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
 plots=read_sf("data/spatial/BioSCapeVegCenters2024_11_12.shp")
 homogeneous=read_sf("data/spatial/BioSCapeVegPolys2024_11_12.shp")
 
@@ -91,23 +103,26 @@ dists=st_distance(photo_all, plots) %>%
   mutate(dist_to_plot_m=apply(.,1,min),
          min_which=apply(.,1,which.min),
          distplot=plots$BScpPID[min_which]) |>
-  select(distplot,dist_to_plot_m)
+  select(distplot,dist_to_plot_m)|>
+  mutate(dist_to_plot_m=round(dist_to_plot_m,0))
 
 photo_all2 <-  photo_all |>
      st_transform(st_crs(plots)) |>
      st_join(select(plots,BScpPID),st_nearest_feature) |>
      bind_cols(dists)
 
-
 if(F){
-select(photo_all2,BScpPID,distplot,dist_to_plot_m)|> View()
-identical(photo_all2$distplot,photo_all2$BScpPID) #check if the nearest plot is the same as the plot in the spatial data)
-}
-# Plot histogram of distance to plot
+
+  select(photo_all2,BScpPID,distplot,dist_to_plot_m)|> View()
+  identical(photo_all2$distplot,photo_all2$BScpPID) #confirm output from two methods above is the same
+
     photo_all2 |>
-    filter(dist_to_plot_m<50) |>
+#    filter(dist_to_plot_m<50) |>
     ggplot(aes(x=dist_to_plot_m))+ 
-    geom_histogram(binwidth=0.1)
+    geom_histogram()#binwidth=0.1)
+
+  }
+# Plot histogram of distance to plot
 
 ```
 
@@ -115,22 +130,22 @@ identical(photo_all2$distplot,photo_all2$BScpPID) #check if the nearest plot is 
 # Plot identification issues
 The following table shows plots that were labeled differently in the photo data compared to the spatial data. This could be due to a mislabeling in the photo data or a mislabeling in the spatial data. 
 
-```{r}
-select(photo_all2,plot_number,BScpPID)|>
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+select(photo_all2,plot_number,BScpPID,dist_to_plot_m)|>
     st_set_geometry(NULL)|>
     mutate(BScpPID2=as.numeric(gsub("T","",BScpPID)),
            plot_number=as.numeric(plot_number))|>
     filter(is.na(plot_number) | BScpPID2!=plot_number)|>
     distinct()|>
-    kable()
+    datatable()
 
 ```
 
 
 ## Upload photo dataset to github release
 
-```{r}
-photo_all_file=paste0("data/photo_all_",tag,".csv")
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+photo_all_file=paste0("data/vegphoto_all_",tagdate,".csv")
 write_csv(photo_all2,photo_all_file)
 
 # upload to github release is manual - run the pb_upload command if desired
@@ -140,7 +155,7 @@ if (F) pb_upload(photo_all_file,tag=tag)
 
 ## Rename and organize all photos
 
-```{r}
+```{r, eval=F}
 
 photo_all3 <- photo_all2 |>
   mutate(
@@ -152,12 +167,12 @@ output_folder="data/photo_out/"
 
 # Define the standard size (e.g., 800x600 pixels)
 standard_width <- 800
-standard_height <- 600
+standard_height <- 800
 
 foreach(i=1:nrow(photo_all3)) %do% {
  input_file= file.path("/Users/adamw/Library/CloudStorage/GoogleDrive-adammichaelwilson@gmail.com/Shared drives",photo_all3$folder[i],photo_all3$filename[i])
- output_file=file.path(outdir,photo_all3$newfile[i])
- output_thumb=file.path(outdir,photo_all3$thumbfile[i])
+ output_file=file.path(output_folder,photo_all3$newfile[i])
+ output_thumb=file.path(output_folder,photo_all3$thumbfile[i])
  
  if(!dir.exists(dirname(output_file))) dir.create(dirname(output_file),recursive = T)
  
@@ -169,60 +184,38 @@ foreach(i=1:nrow(photo_all3)) %do% {
   image_write(img, output_file, format = "jpeg")
   image_write(thumb, output_thumb, format = "jpeg")
   
-  # Print progress
-  cat("Converted:", input_file, "->", output_file, "\n")
+  # update exif information in the new files
 
-  }
+    cmd <- list(
+    paste0("-overwrite_original -Description='original_path=", photo_all3$folder[i],"/",photo_all3$filename[i],
+           " description=",photo_all3$description[i],
+           " botanist=",photo_all3$botanist[i],"'"),    # original Description
+    paste0("-Subject='", photo_all3$genus[i]," ",photo_all3$species[i],"'"),            # Genus Species
+    paste0("-Title='BioSCape ", photo_all3$photo_type[i]," photo from plot ",photo_all3$BScpPID[i],"'"),             # photo type
+    paste0("-Keywords='BioSCape,",photo_all3$botanist[i],"'")     # Original filename
+  )
+  
+  # Update metadata in both output images
+  exiftool_call(args = cmd,fnames=output_file)
+  exiftool_call(args = cmd,fnames=output_thumb)
+  
+  #remove the automatic copies
+}
+```
+
+# Upload Photos to Github Release
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+# upload to github release is manual - run the pb_upload command if desired
+
+if (F) pb_upload(output_folder,tag=tag)
 
 
 
-#View(photo_all3)
+```
 
-```{r}
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
 kable(head(photo_all))
 ```
 
-
-
-# Map of plot locations with photos
-```{r, echo=F}
-
-# Create a leaflet map
-leaflet() %>%
-  #addProviderTiles("Esri.WorldImagery",tileOptions(maxZoom = 50)) %>%
-  addWMSTiles(
-    baseUrl = "http://aerial.openstreetmap.org.za/ngi-aerial/{z}/{x}/{y}.jpg",  # Replace with your WMS URL
-    layers = "ngi-aerial",  # Replace with the desired WMS layer name
-    options = WMSTileOptions(format = "image/jpg", transparent = TRUE,maxZoom=22),
-    attribution = "© SA CDNGI Geospatial 25cm"
-  ) %>% 
-  addPolygons(data=homogeneous,fillColor="blue",fillOpacity=0.2,
-              popup = ~paste("Region: ",homogeneous$Region,
-                             "<br>Plot: ",homogeneous$BScpPID)) %>%
-  addCircleMarkers(data=photo_all2,#lng=photo_all2$gps_longitude,lat=photo_all2$gps_latitude,
-                   popup=~paste("Plot:",photo_all2$plot_number,"<br>Photo Description:",photo_all2$description,"<br>Genus:",photo_all2$genus,"<br>Species:",photo_all2$species,
-                                "<br> <img src='data/photo_out/",photo_all3$thumbfile , "' style='width:150px;height:auto;'>"),
-                   color="red",radius=1) %>%
-  addCircleMarkers(data=plots,lng=st_coordinates(plots)[,"X"], lat=st_coordinates(plots)[,"Y"],
-                   popup=~BScpPID,
-                   color="blue",radius=3)
-
- 
-```
-
-
-## Process Rarefaction photos
-
-```{r}
-photo_rarefaction <- photo_all |>
-  group_by(plot_number, rarefaction_replicate) |>
-  filter(rarefaction_photo==1) |>
-  mutate(
-    rarefaction_time=datetime-min(datetime),
-    rarefaction_min=as.numeric(rarefaction_time)/60,
-    count=row_number()-1,
-    plot_number_replicate=paste(plot_number,rarefaction_replicate,sep=".")
-    ) |>
-  select(plot_number,plot_number_replicate,genus, species, datetime,time,rarefaction_time,rarefaction_min,rarefaction_replicate,count)
-```
 

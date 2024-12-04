@@ -21,7 +21,7 @@ vegdata=readr::read_csv(paste0("data/bioscape_vegetation_data_",tag,".csv"))
 
 ## Map of Plot Locations and Status
 
-Currently `r sum(plots$sampled)` have been sampled. They are shown in the map below.
+Currently `r sum(vegplots$sampled)` have been sampled. They are shown in the map below.
 
 ```{r,echo=F, message=F}
 # Load the leaflet library
@@ -35,7 +35,7 @@ colorPalette <- colorFactor(
 )
 
 # Create a leaflet map
-mymap <- leaflet(plots) %>%
+mymap <- leaflet(vegplots) %>%
   addTiles() %>%
   addCircleMarkers(
     radius = 5, # Adjust the radius of markers
