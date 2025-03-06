@@ -3,7 +3,7 @@ title: "BioSCape Vegetation Plot Photo Rarefaction"
 author: "Adam M. Wilson, Jasper Slingsby, and the BioSCape Team"
 date: "`r Sys.Date()`"
 format:
-  gfm:
+  html:
     toc: true
     toc-depth: 3
     code-fold: true
@@ -18,13 +18,12 @@ execute:
 
 This analysis processes vegetation rarefaction photography data to derive insights about species discovery over time and across different plots. The data includes vegetation photos taken at different plots, with each photo representing a unique species observation. The analysis includes the following steps:
 
-1. **Data Preparation**: Load and preprocess vegetation photo data, including filtering out replicates and calculating time intervals between photos.
-2. **Rarefaction Curves**: Visualize rarefaction curves for each plot, showing the number of unique species observed over time.
-3. **Species Accumulation Curves**: Fit a Michaelis-Menten model to each site’s species accumulation curve to estimate total species richness and sampling effort.
-4. **Comparison with Dominant Species Richness**: Compare rarefaction estimates with dominant species richness from cover data.
-5. **Comparison with Total Vegetation Cover**: Compare rarefaction estimates with total vegetation cover.
-6. **Upload to Github Release**: Publish preliminary version for review
-
+1.  **Data Preparation**: Load and preprocess vegetation photo data, including filtering out replicates and calculating time intervals between photos.
+2.  **Rarefaction Curves**: Visualize rarefaction curves for each plot, showing the number of unique species observed over time.
+3.  **Species Accumulation Curves**: Fit a Michaelis-Menten model to each site’s species accumulation curve to estimate total species richness and sampling effort.
+4.  **Comparison with Dominant Species Richness**: Compare rarefaction estimates with dominant species richness from cover data.
+5.  **Comparison with Total Vegetation Cover**: Compare rarefaction estimates with total vegetation cover.
+6.  **Upload to Github Release**: Publish preliminary version for review
 
 ```{r}
 # Load necessary libraries
@@ -37,14 +36,14 @@ library(leaflet)
 library(cowplot)
 library(DT)
 # Downloading Data
-photo_all_file <- paste0("data/", "vegphoto_v20241126", ".csv")
-pb_download(file = "vegphoto_v20241126.csv", dest = "data", tag = "vegphoto_v20241126")
+photo_all_file <- paste0("data/", "vegphoto_all_v20250228", ".csv")
+pb_download(file = "vegphoto_all_v20250228.csv", dest = "data", tag = "vegphoto_v20250228")
 data <- read_csv(photo_all_file) %>% 
   st_as_sf(crs = 4326, coords = c("gps_longitude", "gps_latitude"))
 
 
 # Download spatial data
-pb_download(file="BioScapeSpatialProducts2024_11_12.zip",dest = "data")
+pb_download(file="BioScapeSpatialProducts2024_11_12.zip",tag="v20241112",dest = "data")
 unzip("data/BioScapeSpatialProducts2024_11_12.zip",exdir = "data/spatial")
 
 
@@ -63,6 +62,7 @@ vdata=read_csv(file.path("data",vdatafile))
 ```
 
 # Summarize vegetation cover data
+
 ```{r}
 vdatas=vdata %>% 
   group_by(Plot) %>% 
@@ -77,14 +77,17 @@ vdatas=vdata %>%
 ```{r}
 # Transforming Rarefaction Data
 rdata <- data %>%
-  group_by(BScpPID, rarefaction_replicate) %>%
+  filter(is.na(rarefaction_duplicate)) |>  #drop all photos flagged as duplicates
+#  group_by(BScpPID, rarefaction_replicate) %>%
+  group_by(BScpPID) %>%
   mutate(species_replicate = grepl("[0-9]",species)) %>%  #flag species replicates with numbers in the name
   filter(rarefaction_photo == 1 & !species_replicate) %>% # keep only rarefaction photos that are not replicates
   mutate(
     rarefaction_time = datetime - min(datetime),
     rarefaction_min = as.numeric(rarefaction_time) / 60,
     count = row_number() - 1,
-    plot_number_replicate = paste(BScpPID, rarefaction_replicate, sep = "."),
+#    plot_number_replicate = paste(BScpPID, rarefaction_replicate, sep = "."),
+    plot_number_replicate = paste(BScpPID, sep = "."),
   ) %>%
   select(BScpPID, plot_number_replicate, description, genus, species, species_replicate, datetime, time, 
          rarefaction_time, rarefaction_min, rarefaction_replicate, count, botanist)
@@ -100,9 +103,12 @@ rdatas <- rdata %>%
   left_join(vdatas, by = c("BScpPID" = "Plot"))
 ```
 
-
 # Plot and Photo locations
+
 ```{r}
+
+library(leaflet.extras)
+
 
 # Create a leaflet map
 leaflet() %>%
@@ -114,19 +120,22 @@ leaflet() %>%
     attribution = "© SA CDNGI Geospatial 25cm"
   ) %>% 
   addPolygons(data=homogeneous,fillColor="blue",fillOpacity=0.2,
+                label = ~homogeneous$BScpPID,
               popup = ~paste("Region: ",homogeneous$Region,
-                             "<br>Plot: ",homogeneous$BScpPID)) %>%
+                             "<br>Plot: ",homogeneous$BScpPID),group = "homogeneous") %>%
   addCircleMarkers(data=data,
+                   label = ~data$BScpPID,
                    popup=~paste("Plot:",data$BScpPID,"<br>Photo Description:",data$description,"<br>Genus:",data$genus,"<br>Species:",data$species),
 #                                "<br> <img src='data/photo_out/",photo_all3$thumbfile , "'   #style='width:150px;height:auto;'>"),
-                   color="red",radius=1) %>%
+                   color="red",radius=1,group = "photos") %>%
   addCircleMarkers(data=plots,lng=st_coordinates(plots)[,"X"], lat=st_coordinates(plots)[,"Y"],
-                   popup=~BScpPID,
-                   color="blue",radius=3)
+                   popup=~BScpPID,group = "plots",
+                   color="blue",radius=3) |> 
+    addSearchFeatures(targetGroups=c("homogeneous","photos","plots"))
+
 
  
 ```
-
 
 ```{r, echo=F, eval=F}
 # NOT RUN
@@ -164,8 +173,6 @@ data_binned %>%
   labs(y = "Unique Species", x = "Minutes")
 ```
 
-
-
 # Species Accumulation Curves
 
 In addition the raw data, we also fit a Michaelis-Menten model to each site’s species accumulation curve using nls.
@@ -176,11 +183,7 @@ $$
 
 Where:
 
-$S_{\text{obs}}$ ~ Number of species observed after n units of sampling
-$S_max$ ~ Total number of species in the pool
-$B$ ~ Sampling effort needed to detect 50% of those species
-$effort$ ~ Sampling effort (time in minutes)
-
+$S_{\text{obs}}$ \~ Number of species observed after n units of sampling $S_max$ \~ Total number of species in the pool $B$ \~ Sampling effort needed to detect 50% of those species $effort$ \~ Sampling effort (time in minutes)
 
 ```{r}
 d1 <- st_set_geometry(rdata,NULL) %>% 
@@ -200,25 +203,57 @@ fit_nls <- function(data) {
   )
 }
 
-# Fit models for each site
-models <- d1 %>%
-  group_by(BScpPID) %>%
-  summarize(
-    model = list(fit_nls(cur_data())),
-    .groups = "drop"
+# Define a function to extract confidence intervals
+extract_confint <- function(model, param) {
+  tryCatch(
+    {
+      ci <- confint(model)  # Extract confidence intervals
+      ci[param, ]  # Return lower and upper bounds for the parameter
+    },
+    error = function(e) c(NA_real_, NA_real_)
   )
+}
+
+
+# Fit models for each site and extract parameters & credible intervals
+results <- d1 %>%
+  group_by(BScpPID) %>%
+  nest() %>%
+  mutate(
+    model = map(data, fit_nls),
+    coefficients = map(model, ~ if (!is.null(.x)) coef(.x) else NA),
+    Smax = map_dbl(coefficients, ~ if (is.numeric(.x)) .x["Smax"] else NA_real_),
+    B = map_dbl(coefficients, ~ if (is.numeric(.x)) .x["B"] else NA_real_),
+    Smax_CI = map(model, ~ extract_confint(.x, "Smax")),
+    B_CI = map(model, ~ extract_confint(.x, "B")),
+    Smax_Lower = map_dbl(Smax_CI, 1),
+    Smax_Upper = map_dbl(Smax_CI, 2),
+    B_Lower = map_dbl(B_CI, 1),
+    B_Upper = map_dbl(B_CI, 2)
+  ) %>%
+  select(-data, -Smax_CI, -B_CI)
+
+
+
+# Fit models for each site
+#models <- d1 %>%
+#  group_by(BScpPID) %>%
+#  summarize(
+#    model = list(fit_nls(cur_data())),
+#    .groups = "drop"
+#  )
 
 # Extract model parameters
-results <- models %>%
-  mutate(
-    coefficients = map(model, ~ if (!is.null(.)) coef(.) else NA),
-    Smax = map_dbl(coefficients, ~ if (!is.null(.)) .["Smax"] else NA),
-    B = map_dbl(coefficients, ~ if (!is.null(.)) .["B"] else NA)
-  )
+#results <- models %>%
+#  mutate(
+#    coefficients = map(model, ~ if (!is.null(.)) coef(.) else NA),
+#    Smax = map_dbl(coefficients, ~ if (!is.null(.)) .["Smax"] else NA),
+#    B = map_dbl(coefficients, ~ if (!is.null(.)) .["B"] else NA)
+#  )
 
 # Add predictions to the dataset
 predicted_data <- d1 %>%
-  left_join(models, by = "BScpPID") %>%
+  left_join(results, by = "BScpPID") %>%
   mutate(
     predicted_richness = map2_dbl(
       rarefaction_min, model,
@@ -231,38 +266,38 @@ predicted_data <- d1 %>%
 
 The rarefaction data are shared in two formats: photo-level data and plot-level data. The photo-level data include information about each photo taken, including the plot, species observed, and time of observation. The plot-level data summarize the rarefaction data for each plot, including the estimated species richness and sampling effort.
 
-
 ```{r}
 # Assemble and organize photo-level data
 vegphoto_rarefied_photo <- rdata %>%
   select(BScpPID, description, genus, species, species_replicate, datetime, time, 
-         rarefaction_time, rarefaction_min, rarefaction_replicate, count, botanist)
+         rarefaction_min, rarefaction_replicate, count, botanist) |> 
+  mutate(datetime=as.Date(datetime), # clean up classes for EML below
+         species_replicate=as.numeric(species_replicate))
 
 # Assemble and simplify plot data 
 vegphoto_rarefied_plot <- rdatas %>%
-  left_join(select(results,BScpPID,Smax,B), by = "BScpPID") %>%
-  select(BScpPID, datetime_start, 
+  left_join(select(results,BScpPID,Smax,B,Smax_Lower,Smax_Upper,B_Lower,B_Upper), by = "BScpPID") %>%
+  select(BScpPID, datetime_start, total_cover, 
          rarefaction_n_5min, rarefaction_n_10min, rarefaction_n_max, rarefaction_replicates,
-         Smax, B)
+         Smax, B, Smax_Lower,Smax_Upper,B_Lower,B_Upper)
 
 
 ```
 
-
 ### vegphoto_rarefied_photo - Column descriptions
 
-* BScpPID - plot id aligned with spatial vegplot data
-* description - original caption entered by the botanists in the field
-* genus - genus of the observed species (when available)
-* species - species of the observed species (when available)
-* species_replicate - flag indicating if the species is a replicate photo and should be filtered
-* datetime - date and time of the photo
-* time - time of day of the photo
-* rarefaction_time - time since the first photo in the rarefaction sequence
-* rarefaction_min - time since the first photo in the rarefaction sequence in minutes
-* rarefaction_replicate - replicate number of the rarefaction sequence (some botanists recorded 4 separate rarefaction sequences, unfortunately)
-* count - cumulative count of unique species observed in the rarefaction sequence
-* botanist - name of the botanist who took the photo
+-   BScpPID - plot id aligned with spatial vegplot data
+-   description - original caption entered by the botanists in the field
+-   genus - genus of the observed species (when available)
+-   species - species of the observed species (when available)
+-   species_replicate - flag indicating if the species is a replicate photo and should be filtered
+-   datetime - date and time of the photo
+-   time - time of day of the photo
+-   rarefaction_time - time since the first photo in the rarefaction sequence
+-   rarefaction_min - time since the first photo in the rarefaction sequence in minutes
+-   rarefaction_replicate - replicate number of the rarefaction sequence (some botanists recorded 4 separate rarefaction sequences, unfortunately)
+-   count - cumulative count of unique species observed in the rarefaction sequence
+-   botanist - name of the botanist who took the photo
 
 ```{r}
 vegphoto_rarefied_photo |>
@@ -271,17 +306,16 @@ vegphoto_rarefied_photo |>
   datatable()
 ```
 
-
 ### vegphoto_rarefied_plot - Column descriptions
 
-* BScpPID - plot id aligned with spatial vegplot data
-* datetime_start - date and time of the first photo in the rarefaction sequence
-* rarefaction_n_5min - estimated species richness after 5 minutes of sampling
-* rarefaction_n_10min - estimated species richness after 10 minutes of sampling
-* rarefaction_n_max - maximum estimated species richness in the rarefaction sequence
-* rarefaction_replicates - number of replicates in the rarefaction sequence (some botanists recorded 4 separate rarefaction sequences - filter to values equal to 1 to avoid these plots)
-* Smax - estimated total species richness in the pool from the rarefaction. Note that some plots have very high (unrealisitic) values for this field.
-* B - sampling effort needed to detect 50% of those species
+-   BScpPID - plot id aligned with spatial vegplot data
+-   datetime_start - date and time of the first photo in the rarefaction sequence
+-   rarefaction_n_5min - estimated species richness after 5 minutes of sampling
+-   rarefaction_n_10min - estimated species richness after 10 minutes of sampling
+-   rarefaction_n_max - maximum estimated species richness in the rarefaction sequence
+-   rarefaction_replicates - number of replicates in the rarefaction sequence (some botanists recorded 4 separate rarefaction sequences - filter to values equal to 1 to avoid these plots)
+-   Smax - estimated total species richness in the pool from the rarefaction. Note that some plots have very high (unrealisitic) values for this field.
+-   B - sampling effort needed to detect 50% of those species
 
 ```{r}
 vegphoto_rarefied_plot |>
@@ -292,6 +326,191 @@ vegphoto_rarefied_plot |>
 
 
 # Build final table and post to Github
+
+## Write metadata
+
+```{r}
+library(EML)
+
+# Define dataset metadata
+dataset <- list(
+  title = "BioSCape Vegetation Plot Photo Rarefaction",
+  creator = list(
+    list(individualName = list(givenName = "Adam M.", surName = "Wilson")),
+    list(individualName = list(givenName = "Jasper", surName = "Slingsby"))
+  ),
+  pubDate = Sys.Date(),
+  abstract = "This dataset includes vegetation photo rarefaction data collected across the BioSCape Vegetation Plots.  These photos were collected as a rapid way to estimate the total vascular plant species richness within each plot without doing a full vegetation survey.  This was done with a standard 10-minute search for new species and taking a photo whenever a new species was observed.  The analysis processes these data to infer species discovery over time, including species accumulation and rarefaction curves. Processing steps included data cleaning, metadata annotation, and the generation of species accumulation and rarefaction curves to quantify biodiversity patterns across the plots.
+
+Photo-level data were structured to include timestamps, species identifications, and replicates, enabling time-based rarefaction analyses. Plot-level summaries were generated to estimate species richness, total vegetation cover, and rarefied species counts at defined time intervals (e.g., 5-minute and 10-minute rarefaction windows). Standardized metadata attributes, including temporal and geographic coverage, were incorporated using the Ecological Metadata Language (EML) framework to facilitate data sharing and reproducibility. The final metadata document provides a structured, machine-readable summary of the dataset, supporting further ecological analysis and integration with broader biodiversity monitoring efforts.",
+  intellectualRights = "This dataset is provided under the CC-BY license.",
+  keywordSet = list(
+    list(keyword = c("vegetation", "rarefaction", "species richness", "ecology", "biodiversity"))
+  ),
+  coverage = list(
+    geographicCoverage = list(
+      geographicDescription = "BioSCape study region",
+      boundingCoordinates = list(
+        westBoundingCoordinate = 18.01,
+        eastBoundingCoordinate = 23.45,
+        northBoundingCoordinate = -32.13,
+        southBoundingCoordinate = -34.81
+      )
+    ),
+    temporalCoverage = list(
+      rangeOfDates = list(
+        beginDate = list(calendarDate = "2023-05-03"),
+        endDate = list(calendarDate = "2023-11-01")
+      )
+    )
+  ),
+  contact = list(
+    individualName = list(givenName = "Adam M.", surName = "Wilson"),
+    electronicMailAddress = "adamw@buffalo.edu"
+  ),
+  methods = list(methodStep = list(description = "Vegetation rarefaction photography data were processed to derive species accumulation and rarefaction curves. The workflow included data cleaning, rarefaction curve fitting, and model estimation. See comments in the code for more details."))
+)
+
+# Define entity metadata for data tables
+dataTable1 <- list(
+  entityName = "vegphoto_rarefied_photo.csv",
+  entityDescription = "Photo-level rarefaction dataset including information on individual photos, species observed, and observation timestamps. Most users will prefer to use the plot-level summaries in the other table.",
+  physical = list(objectName = "vegphoto_rarefied_photo.csv"),
+attributeList <- EML::set_attributes(
+  attributes = bind_rows(
+    data.frame(attributeName="BScpPID", attributeDefinition="Plot ID", unit= NA, 
+               formatString = "character", measurementScale = "nominal",domain="textDomain"),
+    data.frame(attributeName="description",attributeDefinition= "Photo caption as entered in the field", unit= NA, 
+               formatString = "character", measurementScale = "nominal",domain="textDomain"),
+    data.frame(attributeName="genus", attributeDefinition="Genus name", unit= NA, 
+               formatString = "character", measurementScale = "nominal",domain="textDomain"),
+    data.frame(attributeName="species", attributeDefinition="Species name",unit= NA,
+               formatString = "character", measurementScale = "nominal",domain="textDomain"),
+    data.frame(attributeName="species_replicate", attributeDefinition="Flag for species replicate",unit=  NA,
+               formatString = "character", measurementScale = "nominal",domain="textDomain"),
+    data.frame(attributeName="datetime",attributeDefinition= "Timestamp", unit= NA,
+               formatString = "YYYY-MM-DD HH:MM:SS", measurementScale = "dateTime",domain="dateTimeDomain"), 
+    data.frame(attributeName="time",attributeDefinition= "Time of day",  unit="dateTime", 
+               formatString = "character", measurementScale = "dateTime",domain="dateTimeDomain"), #"HH:MM:SS",
+    data.frame(attributeName="rarefaction_min",attributeDefinition="Time since first photo in minutes", unit="minutes", 
+               formatString = "character", measurementScale = "nominal",domain="textDomain"),
+    data.frame(attributeName="rarefaction_replicate",
+               attributeDefinition= "Replicate number (some rarefaction sequences were recorded as multiple sub-series)", unit= "count", 
+               formatString = "character", measurementScale = "nominal",domain="textDomain"),
+    data.frame(attributeName="count",attributeDefinition= "Cumulative species count", unit= "count", 
+               formatString = "character", measurementScale = "nominal",domain="textDomain"),
+    data.frame(attributeName="botanist",attributeDefinition= "Botanist's name",unit= NA, 
+               formatString = "character", measurementScale = "nominal",domain="textDomain")
+  )))
+
+library(dplyr)
+
+dataTable2 <- list(
+  entityName = "vegphoto_rarefied_plot.csv",
+  entityDescription = "Plot-level summary of species accumulation and rarefaction estimates.",
+  physical = list(objectName = "vegphoto_rarefied_plot.csv"),
+  attributeList = EML::set_attributes(bind_rows(
+    data.frame(
+      attributeName = "BScpPID",
+      attributeDefinition = "Plot ID",
+      formatString = "character",
+      measurementScale = "nominal",
+      domain="textDomain"
+    ),
+    data.frame(
+      attributeName = "datetime_start",
+      attributeDefinition = "Start timestamp",
+      formatString = "YYYY-MM-DD HH:MM:SS",
+      measurementScale = "dateTime",
+      domain="dateTimeDomain"
+    ),
+    data.frame(
+      attributeName = "total_cover",
+      attributeDefinition = "Total vegetation cover from the bioscape vegetation dataset",
+      formatString = "numeric",
+      measurementScale = "nominal",
+      domain="textDomain"
+    ),
+    data.frame(
+      attributeName = "rarefaction_n_5min",
+      attributeDefinition = "Species richness after 5 minutes",
+      formatString = "integer",
+      measurementScale = "nominal",
+      domain="textDomain"
+    ),
+    data.frame(
+      attributeName = "rarefaction_n_10min",
+      attributeDefinition = "Species richness after 10 minutes",
+      formatString = "integer",
+      measurementScale = "nominal",
+      domain="textDomain"
+    ),
+    data.frame(
+      attributeName = "rarefaction_n_max",
+      attributeDefinition = "Maximum species richness observed (some surveys went over 10 mintues)",
+      formatString = "integer",
+      measurementScale = "nominal",
+      domain="textDomain"
+    ),
+    data.frame(
+      attributeName = "rarefaction_replicates",
+      attributeDefinition = "Number of replicates of the rarefaction procedure that were done accidentally. Filter out plots with rarefaction_replicates>1 to remove these plots.",
+      formatString = "integer",
+      measurementScale = "nominal",
+      domain="textDomain"
+    ),
+    data.frame(
+      attributeName = "Smax",
+      attributeDefinition = "Estimated total species richness",
+      formatString = "numeric",
+      measurementScale = "nominal",
+      domain="textDomain"
+    ),
+    data.frame(
+      attributeName = "B",
+      attributeDefinition = "Sampling effort to detect 50% of species",
+      formatString = "numeric",
+      measurementScale = "nominal",
+      domain="textDomain"
+    ),
+        data.frame(
+      attributeName = "Smax_Upper",
+      attributeDefinition = "Estimated total species richness, 95% upper confidence interval",
+      formatString = "numeric",
+      measurementScale = "nominal",
+      domain="textDomain"
+    ),
+    data.frame(
+      attributeName = "Smax_Lower",
+      attributeDefinition = "Estimated total species richness, 95% lower confidence interval",
+      formatString = "numeric",
+      measurementScale = "nominal",
+      domain="textDomain"
+    ),
+    data.frame(
+      attributeName = "B_Upper",
+      attributeDefinition = "Sampling effort (time) to detect 50% of species, 95% upper confidence interval",
+      formatString = "numeric",
+      measurementScale = "nominal",
+      domain="textDomain"
+    ),
+    data.frame(
+      attributeName = "B_Lower",
+      attributeDefinition = "Sampling effort (time) to detect 50% of species, 95% lower confidence interval",
+      formatString = "numeric",
+      measurementScale = "nominal",
+      domain="textDomain"
+    )
+  ))
+)
+# Create EML document
+eml <- list(dataset = dataset, dataTable = list(dataTable1, dataTable2))
+vegphoto_rarefied_metadata_file = "data/vegphoto_metadata.xml"
+write_eml(eml, vegphoto_rarefied_metadata_file)
+
+```
+
+
 ```{r}
 tagdate=paste0("v",format(today(),"%Y%m%d"))
 tag=paste0("vegphoto_",tagdate)
@@ -312,12 +531,12 @@ if(F){
   print(tag)
 # upload to github release is manual - run the pb_upload command if desired
   pb_new_release("BioSCape-io/BioSCape-terrestrial",tag=tag)
-  pb_upload(vegplot_rarefiedphoto_plot_file,tag=tag)
+  pb_upload(vegphoto_rarefied_plot_file,tag=tag)
   pb_upload(vegphoto_rarefied_photo_file,tag=tag)
+  pb_upload(vegphoto_rarefied_metadata_file, tag=tag)
 }
 
 ```
-
 
 # Visualization: Rarefaction Curves
 
@@ -346,17 +565,25 @@ plot_grid(p1, p2, align = "v", rel_widths = c(.8,.2),axis = "tblr")  # Align hor
 
 # Visualization: Rarefaction Curves by Plot
 
-Rarefaction curves and estimated species richness for each plot separately.  Dashed lines indicate the 5- and 10-minute rarefaction estimates
+Rarefaction curves and estimated species richness for each plot separately. Dashed lines indicate the 5- and 10-minute rarefaction estimates
 
 ### Example Curves
 
 ```{r}
 
 choose_plots = c("T002","T218","T196")
+
+predicted_data %>% 
+  filter(botanist=="")
+
 predicted_data %>%
   filter(!is.na(BScpPID) & rarefaction_min < 10, BScpPID%in%choose_plots) %>%
   ggplot(aes(x = rarefaction_min, y = count, group = plot_number_replicate)) +
+  geom_rect(aes(xmin=-Inf,xmax=Inf,ymin = Smax_Lower,ymax=Smax_Upper), inherit.aes = F,
+            data = filter(results,BScpPID%in%choose_plots), linetype = "dashed",fill="darkred",alpha=.2) +
   geom_hline(aes(yintercept = Smax), data = filter(results,BScpPID%in%choose_plots), linetype = "dashed",col="red") +
+  geom_rect(aes(ymin=-Inf,ymax=Inf,xmin = B_Lower,xmax=B_Upper), inherit.aes = F,
+            data = filter(results,BScpPID%in%choose_plots), linetype = "dashed",fill="darkred",alpha=.2) +
   geom_vline(aes(xintercept = B), data = filter(results,BScpPID%in%choose_plots), linetype = "dotted",col="red") +
   geom_point(col="black") +
   geom_line(aes(y=predicted_richness),col="red") +
@@ -376,7 +603,11 @@ predicted_data %>%
 predicted_data %>%
   filter(!is.na(BScpPID) & rarefaction_min < 10) %>% #,BScpPID%in%c("T002","T083","T184")) %>%
   ggplot(aes(x = rarefaction_min, y = count, group = plot_number_replicate)) +
+  geom_rect(aes(xmin=-Inf,xmax=Inf,ymin = Smax_Lower,ymax=Smax_Upper), inherit.aes = F,
+            data = results, linetype = "dashed",fill="darkred",alpha=.2) +
   geom_hline(aes(yintercept = Smax), data = results, linetype = "dashed",col="red") +
+ geom_rect(aes(ymin=-Inf,ymax=Inf,xmin = B_Lower,xmax=B_Upper), inherit.aes = F,
+            data = results, linetype = "dashed",fill="darkred",alpha=.2) +
   geom_vline(aes(xintercept = B), data = results, linetype = "dotted",col="red") +
   geom_point(col="black") +
   geom_line(aes(y=predicted_richness),col="red") +
@@ -389,20 +620,23 @@ predicted_data %>%
   labs(title="Rarefaction curves by plot" ,subtitle="Dashed lines indicate 5 and 10 minute rarefaction estimates")
 ```
 
-## Rarefaction estimates compared to Dominant Species Richness 
+## Rarefaction estimates compared to Dominant Species Richness
 
 ```{r}
-rdatas |>
+vegphoto_rarefied_plot |> 
+#rdatas |>
 ggplot(aes(x = n_species, y = rarefaction_n_10min)) +
-  geom_point() +
+  geom_point()+#aes(color=rarefaction_replicates>1))+
   geom_smooth(method = "lm") +
 #  geom_text(aes(label = BScpPID), nudge_x = 0.5, nudge_y = 0.5) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
-  labs(x = "# Species in Cover Data", y = "# Photos in Rarefaction Data")
-
+  labs(x = "# Species in Cover Data", y = "# Photos in Rarefaction Data")+
+  coord_cartesian(ylim=c(0,75))
+    
 ```
 
 ## Rarefaction estimates compared to total vegetation cover
+
 ```{r}
 rdatas |>
 ggplot(aes(x = total_cover, y = rarefaction_n_10min)) +
@@ -413,9 +647,8 @@ ggplot(aes(x = total_cover, y = rarefaction_n_10min)) +
 
 ```
 
-
 # Known Issues
 
-* Some plots have very high (unrealistic) estimates of total species richness (Smax) due to the continuous new observations until the end of the 10-minute period. These estimates should be interpreted with caution.  The `rarefaction_n_10min` and `rarefaction_n_5min` estimates are more reliable though underestimate total richness.
-* Some plots have multiple rarefaction replicates (the botanist recorded multiple short rarefaction sequencies rather than one 10-minute sequence.  These plots can be removed by filtering to `rarefaction_replicates==1`.
-* Some plots may have duplicate photos of the same species - we will go through to ensure there is no double counting of species in the final analysis.
+-   Some plots have very high (unrealistic) estimates of total species richness (Smax) due to the continuous new observations until the end of the 10-minute period. These estimates should be interpreted with caution. The `rarefaction_n_10min` and `rarefaction_n_5min` estimates are more reliable though underestimate total richness.
+-   Some plots have multiple rarefaction replicates (the botanist recorded multiple short rarefaction sequencies rather than one 10-minute sequence. These plots can be removed by filtering to `rarefaction_replicates==1`.
+-   Some plots may have duplicate photos of the same species - we will go through to ensure there is no double counting of species in the final analysis.

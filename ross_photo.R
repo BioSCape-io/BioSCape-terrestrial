@@ -140,16 +140,43 @@ rfiles2 <- left_join(idupes, jdupes, by = "photonum") #|>
 
 
 if(F){
-## Get google docs url of original files
+## Get google drive url of original files
 library(googledrive)
 
 dirs = c("https://drive.google.com/drive/folders/1VldWJhmmjV_bCwugv6zKi5FXo_uwiNuT", #bioscape1_ross
          "https://drive.google.com/drive/folders/1wtby7i2WO14sAQ6GMGNVzIb_sP0zmyzZ", #bioscape1_ross(1),
          "https://drive.google.com/drive/folders/11WBRLpBMq3x5DYmypcQP13MGoNenhlYS") #bioscape1_ross_applephoto
 
+
 # Get all files in the folders using google interface
-ross_drive_files = lapply(dirs, function(x) drive_ls(path = x,recursive=T))|>
-  bind_rows()
+# ross_drive_files = lapply(dirs, function(x) drive_ls(pattern=paste(rfiles$filename,collapse="|"),path = x,recursive=T, 
+#                                                      type=drive_mime_type(c("image/jpg","image/jpeg","image/png")))) |>
+#   bind_rows() |> #combine all the files into a single dataframe
+#   mutate(url=drive_link(id)) |> #add google url to file
+#   group_by(name) |> #group by filename/image
+#   slice_head(n=1) #select the first file from the duplicates (should be the same file duplicated across folders)
+
+
+# Process each chunk using dplyr
+ross_drive_files <- lapply(dirs, function(x) {
+  rfiles2 %>%
+    group_by(folder) %>%  # Group by the chunk ID
+    group_split() %>%       # Split into chunks for processing
+    lapply(function(chunk) {
+      drive_ls(
+        pattern = paste(paste0(chunk$filename,"$"), collapse = "|"),  # Use filenames in the current chunk including '$' to drop .json files with same name
+        path = x,
+        recursive = TRUE
+        #type = drive_mime_type(c("image/jpg", "image/jpeg", "image/png","image/HEIC")) # no mime type for HEIC files!?!
+      )
+    }) %>%
+    bind_rows()  # Combine results from all chunks
+}) %>%
+  bind_rows() %>%  # Combine results from all directories
+  mutate(url = drive_link(id)) %>%  # Add Google URL to each file
+  group_by(name) %>%  # Group by filename/image
+  slice_head(n = 1)  # Select the first file from duplicates
+
 
 # join with local data
 rfiles2a <- rfiles2 |>

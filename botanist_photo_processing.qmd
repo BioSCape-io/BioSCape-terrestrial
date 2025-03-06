@@ -1,6 +1,11 @@
 ---
 title: "BioSCape Photo Processing"
-format: gfm
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    code-summary: "Show the code"
 ---
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
@@ -90,7 +95,6 @@ pb_download(file="BioScapeSpatialProducts2024_11_12.zip",dest = "data")
 unzip("data/BioScapeSpatialProducts2024_11_12.zip",exdir = "data/spatial")
 ```
 
-
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
 plots=read_sf("data/spatial/BioSCapeVegCenters2024_11_12.shp")
 homogeneous=read_sf("data/spatial/BioSCapeVegPolys2024_11_12.shp")
@@ -101,14 +105,15 @@ dists=st_distance(photo_all, plots) %>%
   rowwise() |>
   mutate(dist_to_plot_m=apply(.,1,min),
          min_which=apply(.,1,which.min),
-         distplot=plots$BScpPID[min_which]) |>
-  select(distplot,dist_to_plot_m)|>
+         BScpPID=plots$BScpPID[min_which]) |>
+  select(BScpPID,dist_to_plot_m)|>
   mutate(dist_to_plot_m=round(dist_to_plot_m,0))
 
 photo_all2 <-  photo_all |>
      st_transform(st_crs(plots)) |>
-     st_join(select(plots,BScpPID),st_nearest_feature) |>
-     bind_cols(dists)
+#     st_join(select(plots,BScpPID),st_nearest_feature) |> #alternative method not used
+     bind_cols(dists) |> 
+  mutate(BScpPID=ifelse(dist_to_plot_m>5000,NA,BScpPID)) # drop linked plots if taken more than 5km from plot centroid.
 
 if(F){
 
@@ -125,12 +130,12 @@ if(F){
 
 ```
 
-
 # Plot identification issues
-The following table shows plots that were labeled differently in the photo data compared to the spatial data. This could be due to a mislabeling in the photo data or a mislabeling in the spatial data. 
+
+The following table shows plots that were labeled differently in the photo data compared to the spatial data. This could be due to a mislabeling in the photo data or a mislabeling in the spatial data.
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
-select(photo_all2,plot_number,BScpPID,dist_to_plot_m)|>
+select(photo_all2,botanist,description,location,plot_number,BScpPID,dist_to_plot_m)|>
     st_set_geometry(NULL)|>
     mutate(BScpPID2=as.numeric(gsub("T","",BScpPID)),
            plot_number=as.numeric(plot_number))|>
@@ -139,7 +144,6 @@ select(photo_all2,plot_number,BScpPID,dist_to_plot_m)|>
     datatable()
 
 ```
-
 
 ## Upload photo dataset to github release
 
@@ -216,5 +220,3 @@ if (F) pb_upload(output_folder,tag=tag)
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
 kable(head(photo_all))
 ```
-
-
