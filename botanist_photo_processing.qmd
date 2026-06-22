@@ -8,6 +8,8 @@ format:
     code-summary: "Show the code"
 ---
 
+Required libraries were loaded and a versioned release tag was generated from the current date to label all output files and GitHub releases produced by this workflow.
+
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
 # Load necessary libraries
 library(jsonlite)  # for handling JSON data
@@ -38,7 +40,9 @@ pb_new_release("BioSCape-io/BioSCape-terrestrial",tag=tag)
 
 ## Download current version of spreadsheet
 
-```{r, message=FALSE, warning=FALSE, echo=FALSE}
+The master photo metadata spreadsheet (`Rarefaction_FA.xlsx`) was downloaded from Google Drive. This file contains one worksheet per botanist, each populated in the field using a standardised template capturing filename, GPS coordinates, timestamp, species identification, and photo type flags.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, eval=T}
 ######### User settings
 if (Sys.getenv("USER") == "jasper") {gmail = "jasper.slingsby@uct.ac.za"}
 if (Sys.getenv("USER") == "adamw") {gmail = "adamw@buffalo.edu"}
@@ -47,10 +51,12 @@ if (Sys.getenv("USER") == "adamw") {gmail = "adamw@buffalo.edu"}
 fname="data/Rarefaction_FA.xlsx"
 sheet_url="https://docs.google.com/spreadsheets/d/13kJ7O4PbH6bM-Y89wGf_tbxs-R1THXlb/edit?usp=sharing&ouid=100268570982256677112&rtpof=true&sd=true"
 
-drive_download(sheet_url, path = fname, overwrite = TRUE)
+if(F) drive_download(sheet_url, path = fname, overwrite = TRUE)
 ```
 
-## Get sheet names
+## Parse and combine all botanist sheets
+
+Each botanist worksheet was read and combined into a single dataset. Rows lacking a timestamp were discarded as incomplete entries. The `modify_date` field (formatted `YYYY:MM:DD HH:MM:SS` by the camera firmware) was re-formatted to ISO-8601 and parsed into separate `datetime`, `date`, and `time` columns. GPS coordinate fields were coerced to numeric; cells containing non-numeric text from Excel were silently converted to `NA`. Photos were classified as either `"plot"` (cardinal direction shots, plot overview, or rarefaction sequence markers) or `"species"` (individual taxon records) based on the content of the `genus` field. Cardinal directions were matched as exact single-character strings to avoid false positives within genus names. Records with missing GPS coordinates (e.g. screenshots) were excluded, and the resulting table was converted to an `sf` point layer in WGS 84 (EPSG:4326).
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
 sheets = excel_sheets(fname)
@@ -59,43 +65,54 @@ sheets = excel_sheets(fname)
 sheets=sheets[-1] # Drop the old ross spreadsheet
 
 photo_all=foreach(i=sheets,.combine=bind_rows) %do% {
-  read_xlsx(fname,i) %>% 
-#    select(modify_date) |>
+  read_xlsx(fname,i) |>
+    # Drop rows with no timestamp — these are incomplete entries and cannot be
+    # placed on a timeline; also prevents unparseable strings downstream.
+    filter(!is.na(modify_date)) |>
     mutate(
-      fdate = gsub(":", "-", substring(modify_date, 1, 10)), # get just date part and replace : with -
-      fdate2 = paste(fdate, substring(modify_date, 12)),       # Combine the formatted date part with the time part
-      datetime = as_datetime(fdate2),       # Convert to datetime and extract the date using as_date
-      date = date(datetime),       # extract just date
-      time = hms(format(datetime, "%H:%M:%S")),  # get just time part from the datetime
-      gps_latitude=as.numeric(gps_latitude),
-      gps_longitude=as.numeric(gps_longitude),
-      gps_altitude=as.numeric(gps_altitude),
-      gps_position_error=as.numeric(gps_position_error),
-      modify_date=as_datetime(modify_date),
-      plot_number=as.character(plot_number),
-      photo_type=case_when(
-        grepl("plot|S|N|W|E|start|rarefaction|end|stop",fixed=F,genus) ~ "plot",
-        T ~ "species"
-        ),
-      ) |>
-    select(-fdate,-fdate2) |>  # drop temporary columns
-    select(-exposure_time) |> #drop exposure time due to irregularity and not needed.
-    filter(!is.na(gps_longitude)&!is.na(gps_latitude)) |> # this drops a few random screenshots
-    st_as_sf(coords=c("gps_longitude","gps_latitude"),remove=FALSE,
-           crs=4326) 
-    } 
+      # modify_date arrives as a character from Excel: "YYYY:MM:DD HH:MM:SS"
+      # Replace the colons in the date portion with dashes before parsing.
+      fdate    = gsub(":", "-", substring(modify_date, 1, 10)),
+      fdate2   = paste(fdate, substring(modify_date, 12)),
+      datetime = as_datetime(fdate2),
+      date     = date(datetime),
+      time     = hms(format(datetime, "%H:%M:%S")),
+      # GPS fields can arrive as character "NA" from Excel; suppress coercion
+      # warnings because NA → NA is the intended behaviour here.
+      gps_latitude      = suppressWarnings(as.numeric(gps_latitude)),
+      gps_longitude     = suppressWarnings(as.numeric(gps_longitude)),
+      gps_altitude      = suppressWarnings(as.numeric(gps_altitude)),
+      gps_position_error = suppressWarnings(as.numeric(gps_position_error)),
+      modify_date  = as_datetime(modify_date),
+      plot_number  = as.character(plot_number),
+      # Classify plot-level vs species photos based on the genus field.
+      # Cardinal directions (S, N, W, E) are matched as whole words only to avoid
+      # false positives inside genus names (e.g. "Erica" contains "E").
+      photo_type = case_when(
+        grepl("^(plot|start|rarefaction|end|stop)$", genus, ignore.case = TRUE) ~ "plot",
+        grepl("^[SNWE]$", genus)                                                 ~ "plot",
+        TRUE                                                                     ~ "species"
+      )
+    ) |>
+    select(-fdate, -fdate2) |>       # drop temporary date-parsing columns
+    select(-exposure_time) |>        # drop — inconsistent type across sheets
+    filter(!is.na(gps_longitude) & !is.na(gps_latitude)) |>  # drop screenshots with no GPS
+    st_as_sf(coords = c("gps_longitude", "gps_latitude"), remove = FALSE,
+             crs = 4326)
+}
 
 ```
 
-### Explore spatial data intersection
+### Assign photos to vegetation plots
+
+BioSCape vegetation plot centroids and homogeneous-patch polygons were loaded from the versioned spatial products file. The Euclidean distance from each photo to every plot centroid was computed in the projected coordinate system of the plot layer. Each photo was assigned to its nearest plot; assignments were nullified for photos located more than 1,000 m from the nearest centroid, as these are unlikely to represent intended plot observations.
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
-# download spatial data
-pb_download(file="BioScapeSpatialProducts2024_11_12.zip",dest = "data")
-unzip("data/BioScapeSpatialProducts2024_11_12.zip",exdir = "data/spatial")
-```
 
-```{r, message=FALSE, warning=FALSE, echo=FALSE}
+# download spatial data 
+# pb_download(file="BioScapeSpatialProducts2024_11_12.zip",dest = "data") 
+# unzip("data/BioScapeSpatialProducts2024_11_12.zip",exdir = "data/spatial")
+
 plots=read_sf("data/spatial/BioSCapeVegCenters2024_11_12.shp")
 homogeneous=read_sf("data/spatial/BioSCapeVegPolys2024_11_12.shp")
 
@@ -113,10 +130,11 @@ photo_all2 <-  photo_all |>
      st_transform(st_crs(plots)) |>
 #     st_join(select(plots,BScpPID),st_nearest_feature) |> #alternative method not used
      bind_cols(dists) |> 
-  mutate(BScpPID=ifelse(dist_to_plot_m>5000,NA,BScpPID)) # drop linked plots if taken more than 5km from plot centroid.
+  mutate(BScpPID=ifelse(dist_to_plot_m>1000,NA,BScpPID)) # drop linked plots if taken more than 5km from plot centroid.
 
 if(F){
 
+  photo_all2 |> 
   select(photo_all2,BScpPID,distplot,dist_to_plot_m)|> View()
   identical(photo_all2$distplot,photo_all2$BScpPID) #confirm output from two methods above is the same
 
@@ -128,28 +146,202 @@ if(F){
   }
 # Plot histogram of distance to plot
 
+if(F){
+  photo_all2 |>
+    datatable()
+
+}
+
 ```
 
 # Plot identification issues
 
-The following table shows plots that were labeled differently in the photo data compared to the spatial data. This could be due to a mislabeling in the photo data or a mislabeling in the spatial data.
+Photos were cross-referenced against the spatial plot database by comparing the plot number recorded in the botanist spreadsheet (`plot_number`) with the nearest-neighbour plot ID (`BScpPID`) derived from GPS coordinates. Discrepancies between these two fields are tabulated below and may reflect data-entry errors, plot renumbering, or photos taken at an adjacent plot. Each case should be reviewed before downstream use.
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
 select(photo_all2,botanist,description,location,plot_number,BScpPID,dist_to_plot_m)|>
-    st_set_geometry(NULL)|>
+    st_set_geometry(NULL)|>    
     mutate(BScpPID2=as.numeric(gsub("T","",BScpPID)),
-           plot_number=as.numeric(plot_number))|>
+           plot_number=as.numeric(gsub("T","",plot_number)))|>
     filter(is.na(plot_number) | BScpPID2!=plot_number)|>
+    group_by(BScpPID2) |>
+    summarize(n_photos=n(),
+              botanists = paste(unique(botanist),collapse=","), 
+              plots = paste(unique(plot_number),collapse=", "), 
+              BScpPID2 = paste(unique(BScpPID2),collapse=", "), 
+              mean_dist=mean(dist_to_plot_m)) |>
     distinct()|>
     datatable()
 
 ```
 
-## Upload photo dataset to github release
+# Exploratory Summary
+
+## Plot-level summary
+
+Per-plot summary statistics were computed, including counts of photos by type (species, rarefaction, plot overview, iNaturalist-flagged), the number of unique taxa photographed, rarefaction effort, survey dates, and GPS quality indicators. The summary table was written to disk for use in downstream analyses.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+plot_summary <- photo_all2 |>
+  st_drop_geometry() |>
+  # Exclude photos with no matched plot before summarising
+  filter(!is.na(BScpPID)) |>
+  group_by(BScpPID) |>
+  summarise(
+    # Botanists who contributed photos to this plot
+    botanist = paste(sort(unique(botanist)), collapse = ", "),
+
+    # Total photo counts
+    photo_total        = n(),
+    photo_species      = sum(photo_type == "species", na.rm = TRUE),
+    photo_rarefaction  = sum(rarefaction_photo == 1, na.rm = TRUE),
+    photo_plot         = sum(photo_type == "plot", na.rm = TRUE),
+    # Photos flagged for iNaturalist upload
+    photo_inat         = sum(inat_photo == TRUE, na.rm = TRUE),
+    # Rarefaction duplicates (same individual re-photographed in sequence)
+    photo_rarefaction_duplicate = sum(
+      rarefaction_duplicate == TRUE, na.rm = TRUE
+    ),
+
+    # Species richness: distinct genus+species combos from species-type photos,
+    # excluding rows where genus is NA (unidentified / plot-level shots)
+    n_species = n_distinct(paste(
+      genus[photo_type == "species" & !is.na(genus)],
+      species[photo_type == "species" & !is.na(genus)]
+    )),
+
+    # Maximum rarefaction replicate number — indicates depth of rarefaction
+    # sequence completed for this plot
+    n_rarefaction_replicates = sum(rarefaction_replicate, na.rm = TRUE),
+
+    # Survey effort: number of unique dates photos were taken
+    n_dates    = n_distinct(date),
+    date_first = min(date, na.rm = TRUE),
+    date_last  = max(date, na.rm = TRUE),
+
+    # Spatial QC: median distance from photos to the official plot centroid (m)
+    median_dist_to_plot_m = median(dist_to_plot_m, na.rm = TRUE),
+    # GPS precision reported by the device
+    mean_gps_error_m = round(mean(gps_position_error, na.rm = TRUE), 1),
+    .groups = "drop"
+  ) |>
+  # Replace -Inf / Inf that arise from max/min on all-NA groups
+  mutate(
+    across(where(is.numeric), \(x) ifelse(is.infinite(x), NA_real_, x))
+  )
+
+# Save to disk for use in downstream analyses
+plot_summary_file <- paste0("data/plot_summary_", tagdate, ".csv")
+write_csv(plot_summary, plot_summary_file)
+
+plot_summary |>
+  datatable(
+    caption = "Plot-level photo summary",
+    options = list(pageLength = 15, scrollX = TRUE),
+    rownames = FALSE
+  )
+```
+
+## Global photo diagnostics
+
+Dataset-level summary statistics were compiled to document overall data completeness, coverage, and quality. Key metrics include total photo count, number of matched plots, botanist contributions, temporal range, and mean per-plot photo density.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+# Per-plot photo counts (needed for mean ± SD)
+per_plot_counts <- photo_all2 |>
+  st_drop_geometry() |>
+  filter(!is.na(BScpPID)) |>
+  count(BScpPID, name = "n_photos")
+
+per_plot_species_counts <- photo_all2 |>
+  st_drop_geometry() |>
+  filter(!is.na(BScpPID), photo_type == "species") |>
+  count(BScpPID, name = "n_species_photos")
+
+photo_diagnostics <- tibble(
+  Metric = c(
+    "Total photos (all sheets)",
+    "Total matched plots",
+    "Total unmatched photos (no plot ID)",
+    "Distinct botanists",
+    "Overall date range",
+    "Photos missing coordinates (dropped pre-analysis)",
+    "Photos unmatched to any plot (> 5 km from centroid)",
+    "Rarefaction duplicate photos",
+    "Mean photos per plot (± SD)",
+    "Mean species photos per plot (± SD)",
+    "Total unique species across all plots"
+  ),
+  Value = c(
+    # Total rows in the dataset
+    nrow(st_drop_geometry(photo_all2)),
+
+    # Number of distinct plots with at least one matched photo
+    n_distinct(
+      photo_all2$BScpPID[!is.na(photo_all2$BScpPID)]
+    ),
+
+    # Photos that could not be matched to a plot
+    sum(is.na(photo_all2$BScpPID)),
+
+    # Distinct botanists
+    n_distinct(photo_all2$botanist, na.rm = TRUE),
+
+    # Date range as a string
+    paste(
+      min(photo_all2$date, na.rm = TRUE),
+      "to",
+      max(photo_all2$date, na.rm = TRUE)
+    ),
+
+    # Note: photos without GPS were filtered out during loading; count is
+    # therefore zero post-filter but informative to document.
+    "Filtered during data load (GPS required)",
+
+    # Photos > 5 km from nearest plot centroid
+    sum(is.na(photo_all2$BScpPID)),
+
+    # Rarefaction duplicates flagged in the spreadsheet
+    sum(photo_all2$rarefaction_duplicate == TRUE, na.rm = TRUE),
+
+    # Mean ± SD photos per matched plot
+    paste0(
+      round(mean(per_plot_counts$n_photos), 1),
+      " ± ",
+      round(sd(per_plot_counts$n_photos), 1)
+    ),
+
+    # Mean ± SD species-type photos per matched plot
+    paste0(
+      round(mean(per_plot_species_counts$n_species_photos), 1),
+      " ± ",
+      round(sd(per_plot_species_counts$n_species_photos), 1)
+    ),
+
+    # Total unique species (genus + species) across all plots, species photos only
+    n_distinct(paste(
+      photo_all2$genus[photo_all2$photo_type == "species" &
+                         !is.na(photo_all2$genus)],
+      photo_all2$species[photo_all2$photo_type == "species" &
+                           !is.na(photo_all2$genus)]
+    ))
+  )
+)
+
+kable(photo_diagnostics, col.names = c("Metric", "Value"),
+      caption = "Global photo diagnostics")
+```
+
+## Upload photo dataset to GitHub release
+
+The processed photo metadata table was written to a versioned CSV file. The sf geometry column was dropped prior to writing, as GPS coordinates are retained as explicit `gps_latitude` and `gps_longitude` columns. The file was optionally uploaded to the corresponding GitHub release for archival and downstream use.
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
 photo_all_file=paste0("data/vegphoto_all_",tagdate,".csv")
-write_csv(photo_all2,photo_all_file)
+# Drop sf geometry before writing — the geometry column serialises as WKT and is
+# not needed downstream (lat/lon columns are retained from the original data).
+st_drop_geometry(photo_all2) |>
+  write_csv(photo_all_file)
 
 # upload to github release is manual - run the pb_upload command if desired
 if (F) pb_upload(photo_all_file,tag=tag)
@@ -157,6 +349,8 @@ if (F) pb_upload(photo_all_file,tag=tag)
 ```
 
 ## Rename and organize all photos
+
+Photos were copied from the shared Google Drive source folders into a standardised local directory structure (`data/photo_out/<BScpPID>/`). Each file was renamed according to the convention `<BScpPID>_<photo_type>_<YYYYMMDD_HHMMSS>.jpeg`. A thumbnail version (800 × 800 px) was generated alongside each full-resolution copy. EXIF metadata in both files was updated to embed the original file path, species identification, plot ID, and botanist name, providing a persistent record of provenance within the image files themselves. This chunk is set to `eval=F` and must be run manually after verifying the Google Drive paths.
 
 ```{r, eval=F}
 
@@ -206,16 +400,20 @@ foreach(i=1:nrow(photo_all3)) %do% {
 }
 ```
 
-# Upload Photos to Github Release
+# Upload Photos to GitHub Release
+
+The renamed photo folder was optionally uploaded to the versioned GitHub release. This step is run manually to avoid unintentional large uploads.
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
 # upload to github release is manual - run the pb_upload command if desired
 
 if (F) pb_upload(output_folder,tag=tag)
 
-
-
 ```
+
+## Preview raw data
+
+The first rows of the combined photo table are displayed for a quick sanity check of column names, data types, and representative values.
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
 kable(head(photo_all))

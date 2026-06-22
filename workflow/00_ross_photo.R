@@ -1,4 +1,9 @@
 ## Ross photo cleanup
+# This was used to merge and clean the photos from Ross' original spreadsheet and the new batch of photos that were processed from the google drive folders.
+# The new batch of photos was processed using the same code as the other botanists in the Botanist_photo_processing.qmd script, but with some adjustments to account for the fact that Ross's photos were in a different format and had some irregularities in the descriptions. 
+# The final output of this script is a cleaned and merged spreadsheet of Ross' photos that was added to the existing Rarefaction_FA spreadsheet in a new tab.
+# this should not be needed going forward because the data has already been updated.  But it's kept here as a record of past processing.
+
 library(tidyverse)
 library(jsonlite)
 library(exifr)

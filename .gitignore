@@ -9,3 +9,4 @@ index_cache
 .DS_Store
 .Rhistory
 webdata
+**/*.quarto_ipynb

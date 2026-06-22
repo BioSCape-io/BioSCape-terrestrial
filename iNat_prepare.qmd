@@ -1,0 +1,293 @@
+---
+title: "BioSCape iNaturalist Upload Preparation"
+author: "Adam M. Wilson, Jasper Slingsby, and the BioSCape Team"
+date: "`r Sys.Date()`"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    code-summary: "Show the code"
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Summary
+
+This script reads the cleaned photo dataset produced by `botanist_photo_processing.qmd` and prepares batch CSV files for upload to iNaturalist using the `workflow/dist/iNat_bulk_uploader.exe` tool.
+
+Each row in the output represents one species observation at one plot (one row per species × plot combination). Photos of the same species at the same plot are collapsed into up to 10 `media_name_*` columns. Observations are split into batches of 50 rows for upload.
+
+**Prerequisites:**
+
+1.  Run `botanist_photo_processing.qmd` to produce the `photo_all_file` CSV.
+2.  Run the photo renaming chunk in `botanist_photo_processing.qmd` (currently `eval=F`) so that the `newfile` column is populated with renamed photo paths.
+
+```{r setup}
+library(tidyverse)
+library(piggyback)
+library(DT)
+library(knitr)
+
+# -------------------------------------------------------
+# User parameters — update these before running
+# -------------------------------------------------------
+
+# Version tag of the photo_all file from botanist_photo_processing.qmd
+photo_version <- "v20250228"
+
+# Number of observations per iNat batch CSV
+batch_size <- 50
+
+# Output folder for batch CSVs
+batch_dir <- "data/inat_batches"
+
+# iNat tag applied to every observation
+inat_tag <- "BioSCape"
+
+# Time zone string for iNat (see https://stackoverflow.com/a/13867044)
+inat_timezone <- "Africa/Johannesburg"
+
+# -------------------------------------------------------
+# Derived paths
+# -------------------------------------------------------
+photo_all_file <- file.path("data", paste0("vegphoto_all_", photo_version, ".csv"))
+```
+
+## Load photo data
+
+```{r load-data}
+# Download from GitHub release if not present locally
+if (!file.exists(photo_all_file)) {
+  pb_download(
+    file    = basename(photo_all_file),
+    dest    = "data",
+    tag     = paste0("vegphoto_", photo_version)
+  )
+}
+
+photo_all <- read_csv(photo_all_file, show_col_types = FALSE)
+
+# Validate that the newfile column exists and is populated.
+# The 'newfile' column is created by the photo-renaming chunk in
+# botanist_photo_processing.qmd (currently eval=F — must be run manually first).
+if (!"newfile" %in% names(photo_all)) {
+  stop(
+    "Column 'newfile' not found in photo_all.\n",
+    "Run the photo-renaming chunk in botanist_photo_processing.qmd first."
+  )
+}
+
+n_missing_newfile <- sum(is.na(photo_all$newfile))
+if (n_missing_newfile > 0) {
+  warning(
+    n_missing_newfile,
+    " rows have NA in 'newfile'. These observations will have no media attached."
+  )
+}
+
+glimpse(photo_all)
+```
+
+## Filter to species photos
+
+```{r filter-species}
+# Keep only photos tagged as species observations (not plot/cardinal/rarefaction shots).
+# Also require non-NA genus, species, and plot ID so that the iNat taxon_name and
+# location fields are always populated.
+species_photos <- photo_all |>
+  filter(
+    photo_type == "species",
+    !is.na(genus),
+    !is.na(species),
+    !is.na(BScpPID)
+  ) |>
+  mutate(
+    taxon_name = paste(genus, species),
+    # iNat requires date in DD/MM/YYYY format
+    date_obs   = format(as.Date(date), "%d/%m/%Y"),
+    # basename of the renamed photo file, used in media_name_* columns
+    photo_basename = basename(newfile)
+  )
+
+cat("Species photos available for iNat upload:", nrow(species_photos), "\n")
+cat("Unique taxon names:                      ", n_distinct(species_photos$taxon_name), "\n")
+cat("Unique plots:                            ", n_distinct(species_photos$BScpPID), "\n")
+```
+
+## Collapse to one row per species × plot
+
+```{r collapse-observations}
+# The iNat bulk uploader expects one observation per row.
+# We define one observation = one species at one plot.
+# All photos of that species at that plot are spread across media_name_1 … media_name_10.
+# GPS coordinates are averaged across photos; positional accuracy is the maximum.
+# The description field concatenates all unique photo captions for context.
+
+# Maximum number of media columns in the template
+max_media <- 10
+
+inat_obs <- species_photos |>
+  group_by(BScpPID, taxon_name) |>
+  summarise(
+    date_obs    = first(date_obs),        # date of first photo of this species at plot
+    latitude    = mean(gps_latitude,  na.rm = TRUE),
+    longitude   = mean(gps_longitude, na.rm = TRUE),
+    pos_acc     = max(gps_position_error, na.rm = TRUE),
+    botanist    = paste(unique(na.omit(botanist)), collapse = ", "),
+    description = paste(
+      paste0("BioSCape Vegetation Plot=", first(BScpPID),
+             "; Botanist=", paste(unique(na.omit(botanist)), collapse = "/"),
+             "; Descriptions=", paste(unique(na.omit(description)), collapse = " | "))
+    ),
+    n_photos    = n(),
+    # Collect photo basenames as a list, then keep up to max_media
+    photos      = list(na.omit(photo_basename)[seq_len(min(n(), max_media))]),
+    .groups = "drop"
+  ) |>
+  # Replace Inf/-Inf from max() on all-NA pos_acc with NA
+  mutate(
+    pos_acc = if_else(is.infinite(pos_acc), NA_real_, round(pos_acc, 1))
+  )
+
+cat("Total iNat observations (species × plot):", nrow(inat_obs), "\n")
+cat("Batches of", batch_size, "needed:         ",
+    ceiling(nrow(inat_obs) / batch_size), "\n")
+```
+
+## Build iNat template table
+
+```{r build-template}
+# Spread the photos list-column into media_name_1 … media_name_10 columns,
+# then assemble the full iNat template with all required fields.
+
+# Helper: extract nth element from a list column, returning NA if out of bounds
+nth_photo <- function(photos_list, n) {
+  map_chr(photos_list, ~ if (length(.x) >= n) .x[[n]] else NA_character_)
+}
+
+inat_table <- inat_obs |>
+  mutate(
+    # Sequential ID across the full upload table
+    id           = row_number(),
+    time_zone    = inat_timezone,
+    tag_list     = inat_tag,
+    location     = BScpPID,
+    geoprivacy   = "open",
+    # iNat observation field columns (empty for now — add BioSCape project field IDs here)
+    field_id1    = NA_character_,
+    field_value1 = NA_character_,
+    field_id2    = NA_character_,
+    field_value2 = NA_character_,
+    # Spread photo basenames into separate columns
+    media_name_1  = nth_photo(photos,  1),
+    media_name_2  = nth_photo(photos,  2),
+    media_name_3  = nth_photo(photos,  3),
+    media_name_4  = nth_photo(photos,  4),
+    media_name_5  = nth_photo(photos,  5),
+    media_name_6  = nth_photo(photos,  6),
+    media_name_7  = nth_photo(photos,  7),
+    media_name_8  = nth_photo(photos,  8),
+    media_name_9  = nth_photo(photos,  9),
+    media_name_10 = nth_photo(photos, 10),
+    # Batch assignment: ceiling(id / batch_size) gives the batch number
+    batch         = ceiling(id / batch_size)
+  ) |>
+  # Select and order columns to match the iNat template exactly
+  select(
+    id, taxon_name, date_obs, time_zone, description, tag_list,
+    latitude, longitude, location, pos_acc, geoprivacy,
+    field_id1, field_value1, field_id2, field_value2,
+    media_name_1, media_name_2, media_name_3, media_name_4, media_name_5,
+    media_name_6, media_name_7, media_name_8, media_name_9, media_name_10,
+    # keep batch and n_photos for QC — these are dropped when writing output CSVs
+    batch, n_photos
+  )
+```
+
+## QA check
+
+```{r qa-check}
+# Flag observations with potential data quality issues before writing output.
+
+qa_flags <- inat_table |>
+  mutate(
+    flag_no_media    = is.na(media_name_1),   # no photo attached
+    flag_no_taxon    = is.na(taxon_name) | taxon_name == "NA NA",
+    flag_no_coords   = is.na(latitude) | is.na(longitude),
+    flag_high_pos    = !is.na(pos_acc) & pos_acc > 100  # >100 m accuracy is suspicious
+  ) |>
+  filter(flag_no_media | flag_no_taxon | flag_no_coords | flag_high_pos) |>
+  select(id, BScpPID, taxon_name, n_photos,
+         flag_no_media, flag_no_taxon, flag_no_coords, flag_high_pos)
+
+cat("Observations with QA flags:", nrow(qa_flags), "\n")
+
+if (nrow(qa_flags) > 0) {
+  qa_flags |>
+    datatable(caption = "Observations with QA flags — review before uploading")
+}
+```
+
+## Preview
+
+```{r preview}
+inat_table |>
+  select(id, taxon_name, date_obs, BScpPID, latitude, longitude,
+         n_photos, batch, media_name_1) |>
+  slice(1:20) |>
+  datatable(caption = "First 20 iNat observations (preview)")
+```
+
+## Batch summary
+
+```{r batch-summary}
+inat_table |>
+  count(batch, name = "n_observations") |>
+  kable(caption = paste("Batch summary —", batch_size, "observations per batch"))
+```
+
+## Write batch CSV files
+
+```{r write-batches}
+# Create output directory
+if (!dir.exists(batch_dir)) dir.create(batch_dir, recursive = TRUE)
+
+# iNat template columns only — exclude 'batch' and 'n_photos'
+template_cols <- c(
+  "id", "taxon_name", "date_obs", "time_zone", "description", "tag_list",
+  "latitude", "longitude", "location", "pos_acc", "geoprivacy",
+  "field_id1", "field_value1", "field_id2", "field_value2",
+  "media_name_1", "media_name_2", "media_name_3", "media_name_4", "media_name_5",
+  "media_name_6", "media_name_7", "media_name_8", "media_name_9", "media_name_10"
+)
+
+batch_ids <- sort(unique(inat_table$batch))
+
+walk(batch_ids, function(b) {
+  batch_file <- file.path(batch_dir,
+                          paste0("batch_", sprintf("%02d", b), ".csv"))
+  inat_table |>
+    filter(batch == b) |>
+    select(all_of(template_cols)) |>
+    write_csv(batch_file, na = "")   # iNat uploader expects empty strings not "NA"
+  cat("Wrote:", batch_file, "\n")
+})
+
+cat("\nAll batches written to:", batch_dir, "\n")
+cat("Total batches:", length(batch_ids), "\n")
+cat("Total observations:", nrow(inat_table), "\n")
+```
+
+## Next steps
+
+1.  Copy the batch CSV files from `data/inat_batches/` to a folder alongside the renamed photos from `data/photo_out/`.
+2.  Open `workflow/dist/iNat_bulk_uploader.exe`.
+3.  Enter your iNaturalist username and password.
+4.  Select a batch CSV and the photo folder, then submit.
+5.  Check `workflow/dist/log.csv` after each batch for errors.
+6.  Test with a small batch (`batch_01.csv`) first before uploading all batches.
+
+After uploading, download the iNat observation export and join observation IDs back to `bioscape_veg_plot_species_v20241104.csv` using `taxon_name` + `BScpPID` (`location`).
