@@ -40,7 +40,7 @@ pb_new_release("BioSCape-io/BioSCape-terrestrial",tag=tag)
 
 ## Download current version of spreadsheet
 
-The master photo metadata spreadsheet (`Rarefaction_FA.xlsx`) was downloaded from Google Drive. This file contains one worksheet per botanist, each populated in the field using a standardised template capturing filename, GPS coordinates, timestamp, species identification, and photo type flags.
+The master photo metadata spreadsheet (`Rarefaction_FA.xlsx`) was downloaded from Google Drive. This file contains one worksheet per botanist, each populated from the metadata of photographs taken in the field using a standardised template capturing filename, GPS coordinates, timestamp, species identification, and photo type flags.
 
 ```{r, message=FALSE, warning=FALSE, echo=TRUE, eval=T}
 ######### User settings
@@ -89,8 +89,8 @@ photo_all=foreach(i=sheets,.combine=bind_rows) %do% {
       # Cardinal directions (S, N, W, E) are matched as whole words only to avoid
       # false positives inside genus names (e.g. "Erica" contains "E").
       photo_type = case_when(
-        grepl("^(plot|start|rarefaction|end|stop|centre|center|magnet|cairn)$", genus, ignore.case = TRUE) ~ "plot",
-        grepl("^[SNWE]$", genus)                                                 ~ "plot",
+        grepl("^(plot|start|rarefaction|end|stop|centre|center|magnet|cairn|view|datasheet|webbing|alluvial|unidentified)$", genus, ignore.case = TRUE) ~ "plot",
+        grepl("^[SNWE]$|W2|S2|E2|N2|South", genus)                               ~ "plot",
         TRUE                                                                     ~ "species"
       )
     ) |>
@@ -130,9 +130,8 @@ dists=st_distance(photo_all, plots) %>%
 
 photo_all2 <-  photo_all |>
      st_transform(st_crs(plots)) |>
-#     st_join(select(plots,BScpPID),st_nearest_feature) |> #alternative method not used
      bind_cols(dists) |>
-  mutate(plot=ifelse(dist_to_plot_m>1000,NA,plot_closest)) # drop linked plots if taken more than 5km from plot centroid.
+  mutate(plot=ifelse(dist_to_plot_m>1000,NA,plot_closest)) # drop linked plots if taken more than 1km from plot centroid.
 
 if(F){
 
@@ -154,6 +153,95 @@ if(F){
 
 }
 
+```
+
+## Clean species field
+
+The `species` column from the botanist spreadsheets sometimes contains annotation suffixes encoded as dot-separated tokens (e.g. `sulcata.start.rarefaction`, `cf.gladiata.flat.stems.1`) rather than a bare species epithet. Two derived columns are created: `species_clean` holds the bare epithet (`NA` when the record only reaches genus level — i.e. when the first token is `"cf"`, `"sp"`, `"na"`, or a bare number), and `species_notes` captures any remaining content after removing known annotation phrases. The cleaned field is used for fuzzy matching; the original `species` column is preserved unmodified for traceability.
+
+```{r, message=FALSE, warning=FALSE}
+# Recognised annotation phrases that appear as dot-joined suffixes in the
+# species field but are not part of the taxon name.
+annotation_pattern <- regex(
+  "\\b(not in cover|start rarefaction|pink flowers|flat stems)\\b",
+  ignore_case = TRUE
+)
+
+# First-token placeholders that indicate the species epithet is unresolved:
+#   cf  – uncertain identification (species epithet follows as a note)
+#   sp  – species unknown within the genus
+#   na  – not identified
+#   <number> – repeat-photo counter used as species token
+unresolved_terms <- c("cf", "sp", "sp.", "na")
+
+photo_all2 <- photo_all2 |>
+  mutate(
+    # Replace dot word-separators with spaces and collapse extra whitespace, so
+    # "cf.gladiata.flat.stems.1" → "cf gladiata flat stems 1".
+    species_raw      = str_squish(str_replace_all(coalesce(species, ""), "\\.", " ")),
+    species_first    = word(species_raw, 1),
+    # Species is resolved to epithet level unless the first token is a placeholder
+    # term, a bare number, or a "sp" + number code (e.g. sp1, sp2 — genus-level
+    # identifications where the botanist numbered multiple morphospecies within
+    # the same genus rather than providing a species epithet).
+    species_resolved = species_first != "" &
+                       !str_to_lower(species_first) %in% unresolved_terms &
+                       !str_detect(species_first, "^\\d+$") &
+                       !str_detect(str_to_lower(species_first), "^sp\\d+$")
+  ) |>
+  mutate(
+    # Bare epithet for resolved identifications; NA for genus-only records.
+    species_clean = if_else(species_resolved, species_first, NA_character_),
+    # Content beyond the epithet (or the whole string for unresolved records),
+    # stripped of annotation phrases and bare repeat-photo counters.
+    species_rest  = if_else(
+      species_resolved,
+      coalesce(str_squish(word(species_raw, 2, -1)), ""),
+      species_raw
+    ),
+    species_rest  = str_squish(str_remove_all(species_rest, annotation_pattern)),
+    # Remove leading or trailing bare numbers (repeat-photo counters, e.g. "1").
+    species_rest  = str_squish(str_remove(species_rest, "^\\d+\\s*|\\s*\\d+$")),
+    species_notes = if_else(species_rest == "", NA_character_, species_rest)
+  ) |>
+  select(-species_raw, -species_first, -species_resolved, -species_rest)
+
+cat(
+  "Species photos with cleaned epithet (species_clean not NA): ",
+  sum(!is.na(photo_all2$species_clean[photo_all2$photo_type == "species"]),
+      na.rm = TRUE), "\n",
+  "Species photos genus-only (species_clean is NA):            ",
+  sum( is.na(photo_all2$species_clean[photo_all2$photo_type == "species"]) &
+       !is.na(photo_all2$genus[photo_all2$photo_type == "species"]),
+      na.rm = TRUE), "\n"
+)
+```
+
+## Manual overrides for non-species photo names
+
+Some entries in the botanist spreadsheets use the `genus` field for free-text notes (landscape descriptions, common names, data-entry labels) that are not taxon names. These slip past the `photo_type` classifier and would otherwise be passed to the fuzzy matcher, producing spurious corrections. The table below lists known cases; set `corrected_name` to `NA` to exclude an entry from species matching entirely, or to a valid `"Genus species"` string to force a specific canonical match. Add new rows here as they are discovered during review.
+
+```{r, message=FALSE, warning=FALSE}
+# photo_name values are the cleaned "genus [species_clean]" strings that reach
+# the fuzzy matcher.  NA corrected_name → excluded from species list entirely.
+manual_overrides <- tribble(
+  ~photo_name,                                        ~corrected_name,
+  "View of 8500 year old eroded alluvial sediments",  NA_character_,
+  "? not",                                            NA_character_,
+  "unknown",                                          NA_character_,
+  "Vygie not",                                        NA_character_,
+  "vygie not",                                        NA_character_,
+  "seen from_E_on_6_May",                             NA_character_,
+  "datasheet1",                                       NA_character_,
+  "datasheet2",                                       NA_character_,
+  "red webbing",                                      NA_character_,
+  "No idea",                                          NA_character_,
+  "Thymelaeaceae probably",                            NA_character_,
+  "buck droppings",                                   NA_character_,
+  "much dung",                                        NA_character_,
+  "Views of",                                         NA_character_,
+  "large friendly",                                   NA_character_,
+)
 ```
 
 ## Join with plot-level species lists
@@ -191,36 +279,48 @@ spd_species <- spd |>
   ) |>
   distinct(plot, genus, species, genus_l, species_l, spd_name)
 
-# Global set of unique verified names — the correction target for fuzzy matching.
-# Using a global list means any valid spd name can serve as a correction target;
-# spelling errors are a property of the name, not of a particular plot.
-spd_names_global <- distinct(spd_species, spd_name) |> pull(spd_name)
+# Canonical accepted-species list covering all taxa observed across BioSCape
+# plots (both survey and photo data).  This is the fuzzy-matching target —
+# photo names are corrected to the nearest canonical name.
+canonical_file   <- "data/BioSCapePlots_AcceptedSpecies.csv"
+canonical_names  <- read_csv(canonical_file, show_col_types = FALSE) |>
+  pull(Taxon)
 
 cat("Unique plot × species combinations in survey data:", nrow(spd_species), "\n")
-cat("Unique verified taxon names (global):             ", length(spd_names_global), "\n")
+cat("Canonical accepted taxon names (matching target): ", length(canonical_names), "\n")
 ```
 
-### Fuzzy-correct photo names against the verified survey list
+### Fuzzy-correct photo names against the canonical species list
 
-Each distinct photo taxon name is matched to the closest name in the verified survey list using the Jaro-Winkler string distance metric, which weights character differences near the start of a string more heavily — a good fit for binomial taxon names where genus misspellings are common. Photo names within the distance threshold receive the nearest matching spd name as a correction; those above threshold are flagged as `"no_match"` and retain their original values. Corrections are made at the name level (not per plot), because a misspelling is a property of the entered string, not of the plot where it was recorded.
+Each distinct photo taxon name is matched to the closest name in the canonical accepted-species list using the Jaro-Winkler string distance metric, which weights character differences near the start of a string more heavily — a good fit for binomial taxon names where genus misspellings are common. Photo names within the distance threshold receive the nearest canonical name as a correction; those above threshold are flagged as `"no_match"` and retain their original values. Corrections are made at the name level (not per plot), because a misspelling is a property of the entered string, not of the plot where it was recorded.
 
 ```{r, message=FALSE, warning=FALSE}
 # Jaro-Winkler distance threshold: photo names with a best-match distance below
-# this value are corrected to the spd name; those above are flagged as unverified.
-jw_threshold <- 0.10
+# this value are corrected to the canonical name; those above are flagged as unverified.
+jw_threshold <- 1
 
 # Distinct taxon names entered in the photo dataset (species-type photos only).
+# Use species_clean (dots removed, annotation suffixes stripped, unresolved
+# epithets set to NA) so that noise in the raw species field does not inflate
+# string distances during matching.  Genus-only records (species_clean is NA)
+# are matched as a bare genus name.
 photo_names_distinct <- photo_all2 |>
   st_drop_geometry() |>
   filter(photo_type == "species", !is.na(genus), !is.na(plot)) |>
-  mutate(photo_name = paste(str_trim(genus), str_trim(species))) |>
+  mutate(
+    photo_name = if_else(
+      is.na(species_clean),
+      str_trim(genus),
+      paste(str_trim(genus), str_trim(species_clean))
+    )
+  ) |>
   distinct(photo_name)
 
-# Compute a full n_photo × n_spd Jaro-Winkler distance matrix, then extract the
-# single best-matching spd name for each photo name.
+# Compute a full n_photo × n_canonical Jaro-Winkler distance matrix, then
+# extract the single best-matching canonical name for each photo name.
 dist_matrix <- stringdistmatrix(
   str_to_lower(photo_names_distinct$photo_name),
-  str_to_lower(spd_names_global),
+  str_to_lower(canonical_names),
   method = "jw", p = 0.1   # p = 0.1 is the standard Jaro-Winkler prefix weight
 )
 
@@ -229,25 +329,68 @@ best_dist <- apply(dist_matrix, 1, min)
 
 photo_name_corrections <- photo_names_distinct |>
   mutate(
-    spd_name_matched  = spd_names_global[best_idx],
-    match_dist        = round(best_dist, 4),
-    match_type        = case_when(
-      str_to_lower(photo_name) == str_to_lower(spd_name_matched) ~ "exact",
-      match_dist < jw_threshold                                   ~ "fuzzy",
-      TRUE                                                        ~ "no_match"
+    canonical_name_matched = canonical_names[best_idx],
+    match_dist             = round(best_dist, 4),
+    match_type             = case_when(
+      str_to_lower(photo_name) == str_to_lower(canonical_name_matched) ~ "exact",
+      match_dist < jw_threshold                                         ~ "fuzzy",
+      TRUE                                                              ~ "no_match"
     ),
-    # Use the verified spd name when a sufficiently close match exists
+    # Use the canonical name when a sufficiently close match exists
     corrected_name    = if_else(match_type != "no_match",
-                                spd_name_matched, photo_name),
+                                canonical_name_matched, photo_name),
     corrected_genus   = word(corrected_name, 1),
     corrected_species = word(corrected_name, 2)
   )
 
+# Apply manual overrides: stamp match_type = "excluded" and corrected_name = NA
+# (or the forced name) for any photo_name listed in manual_overrides.
+overrides_formatted <- manual_overrides |>
+  mutate(
+    match_type             = "excluded",
+    canonical_name_matched = NA_character_,
+    match_dist             = NA_real_,
+    corrected_name         = corrected_name,
+    corrected_genus        = word(corrected_name, 1),
+    corrected_species      = word(corrected_name, 2)
+  )
+
+photo_name_corrections <- rows_update(
+  photo_name_corrections,
+  overrides_formatted,
+  by = "photo_name",
+  unmatched = "ignore"
+)
+
+# Genus-only entries (single-word photo_name, where species_clean was NA) should
+# keep only the genus and not be fuzzy-matched to a binomial — the species
+# epithet is genuinely unknown, not misspelled.  Capitalise the genus for
+# consistency with the canonical list.
+photo_name_corrections <- photo_name_corrections |>
+  mutate(
+    is_genus_only     = !str_detect(photo_name, " ") &
+                        match_type %in% c("exact", "fuzzy", "no_match"),
+    match_type        = if_else(is_genus_only, "genus_only", match_type),
+    corrected_name    = if_else(is_genus_only,
+                                str_to_title(photo_name), corrected_name),
+    corrected_genus   = if_else(is_genus_only,
+                                str_to_title(photo_name), corrected_genus),
+    corrected_species = if_else(is_genus_only, NA_character_, corrected_species),
+    canonical_name_matched = if_else(is_genus_only,
+                                     NA_character_, canonical_name_matched),
+    match_dist        = if_else(is_genus_only, NA_real_, match_dist)
+  ) |>
+  select(-is_genus_only)
+
 cat("Distinct photo taxon names assessed:    ", nrow(photo_name_corrections), "\n")
-cat("  exact match to spd name:              ",
+cat("  exact match to canonical name:        ",
     sum(photo_name_corrections$match_type == "exact"), "\n")
 cat("  fuzzy-corrected (dist <", jw_threshold, "):",
     sum(photo_name_corrections$match_type == "fuzzy"), "\n")
+cat("  genus-only (species not recorded):    ",
+    sum(photo_name_corrections$match_type == "genus_only"), "\n")
+cat("  manually excluded (non-species notes):",
+    sum(photo_name_corrections$match_type == "excluded"), "\n")
 cat("  unmatched (dist >=", jw_threshold, "):  ",
     sum(photo_name_corrections$match_type == "no_match"), "\n")
 ```
@@ -260,7 +403,7 @@ The table below shows every photo name that was automatically corrected, along w
 photo_name_corrections |>
   filter(match_type == "fuzzy") |>
   arrange(match_dist) |>
-  select(photo_name, spd_name_matched, match_dist) |>
+  select(photo_name, corrected_name, canonical_name_matched, match_dist) |>
   datatable(
     caption = paste0(
       "Photo names auto-corrected by fuzzy matching (Jaro-Winkler distance < ",
@@ -276,12 +419,17 @@ photo_name_corrections |>
 The correction lookup is joined back to `photo_all2`, adding `corrected_genus`, `corrected_species`, `match_type`, and `match_dist` columns. The corrected names are used in all subsequent joins; the original `genus` / `species` columns are preserved unmodified for traceability.
 
 ```{r, message=FALSE, warning=FALSE}
-# Build a temporary join key in photo_all2, join the corrections, then drop the key.
+# Build a temporary join key in photo_all2 that matches the keys used in
+# photo_names_distinct (i.e. uses species_clean, not the raw species field).
 photo_all2 <- photo_all2 |>
   mutate(
     photo_name = if_else(
       photo_type == "species" & !is.na(genus) & !is.na(plot),
-      paste(str_trim(genus), str_trim(species)),
+      if_else(
+        is.na(species_clean),
+        str_trim(genus),
+        paste(str_trim(genus), str_trim(species_clean))
+      ),
       NA_character_
     )
   ) |>
@@ -290,10 +438,20 @@ photo_all2 <- photo_all2 |>
            photo_name, corrected_genus, corrected_species, match_type, match_dist),
     by = "photo_name"
   ) |>
-  # For non-species photos the join key is NA; fall back to original values
+  # Fall back to the original genus/species only for rows that had no join key
+  # (non-species photos).  Do NOT fall back for manually excluded entries —
+  # those have match_type == "excluded" and corrected_genus intentionally NA.
   mutate(
-    corrected_genus   = coalesce(corrected_genus,   genus),
-    corrected_species = coalesce(corrected_species, species)
+    corrected_genus   = if_else(
+      is.na(match_type) | match_type != "excluded",
+      coalesce(corrected_genus, genus),
+      corrected_genus
+    ),
+    corrected_species = if_else(
+      is.na(match_type) | (match_type != "excluded" & match_type != "genus_only"),
+      coalesce(corrected_species, species),
+      corrected_species
+    )
   ) |>
   select(-photo_name)
 
