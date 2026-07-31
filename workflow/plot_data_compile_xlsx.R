@@ -68,7 +68,6 @@ foreach(i=1:nrow(sheet_urls)) %do% {
 drive_download(sheet_urls[i,2], path = paste0("data/", Sys.Date(), sheet_urls[i,1], ".xlsx"), overwrite = TRUE)
 }
 
-
 ################################
 ### Read in data sheets
 ################################
@@ -129,9 +128,58 @@ data <- data_downloaded %>%
   mutate("SiteCode_Plot"=paste(SiteCode,Plot,sep="_"),
          Plot=as.numeric(sub("T","",Plot)))  
 
-# add transect data here?
+# Get line intercept data (multiple sheets/tabs for each workbook)
+# Filter sheet names using grep to identify only plot and drop template sheets
+lineint_sheets <- sheets[grepl("lineintercept|LineIntercept|lineIntercept|Lineintercept", sheets,ignore.case = T) & 
+                        !grepl("Template_LineIntercept|Template_lineintercept|Example", sheets) & 
+                        #  !grepl("Swartberg_20_plot",sheets) & #swartberg 20 is empty - deleted from GoogleSheets
+                        !grepl("Gardenroute_T275_plot",sheets) & #Adam Labuschagne's "dodgy" plots
+                        !grepl("Gardenroute_T139_plot",sheets) & #Adam Labuschagne's "dodgy" plots
+                        !grepl("Gardenroute_T051_plot",sheets) & #Adam Labuschagne's "dodgy" plots
+                        !grepl("Gardenroute_T053_plot",sheets) & #Adam Labuschagne's "dodgy" plots
+                        !grepl("Hawequas_194 Plot",sheets) & #Adam Labuschagne's "dodgy" plots
+                        !grepl("test",sheets)
+] 
 
-list(sites=sitesheet,quaddata=data)
+# Download data from the specified tabs as data frames
+# Apply filters, data format changes, etc as necessary
+li_data_downloaded <- lapply(lineint_sheets, 
+                          function(tab) {
+                            read_xlsx(sheet,tab) %>% #, range = cell_rows(c(1, 3:46))) %>% # Skip second row and read up to 46 rows to avoid empty extras
+                              #select(-SeasonallyApparent,  #drop field causing problems - now fixed
+                              #       -NewSpecies,
+                              #       -MeanCanopyDiameter_cm) %>% 
+                              mutate(SiteCode_Plot_LineTransect = as.character(SiteCode_Plot_LineTransect)) %>%
+                              rename(any_of(c(SiteCode_Plot = "6.0"))) %>%
+                              filter(!is.na(SiteCode_Plot)) %>%
+                              mutate(NameCheck = as.character(NameCheck))  %>%
+                              mutate(Comments = as.character(Comments)) 
+                           #  mutate(NewSpecies = as.character(NewSpecies)) %>%
+                           #  mutate(SeasonallyApparent = as.character(SeasonallyApparent))
+                          })
+
+# merge line intercept data from list of multiple sheets into one dataframe (for this workbook)
+li_data <- li_data_downloaded %>% 
+  bind_rows() %>% 
+  separate(SiteCode_Plot_LineTransect,into=c("SiteCode","Plot","LineTransect"),sep="_",remove = F) %>% 
+  mutate(Plot=as.numeric(sub("T","",Plot)))  
+
+###HERE###
+
+# #Checks by sheet
+# li_data |> filter(NameCheck == "#N/A" & !is.na(Genus_Species_Combo)) |> View() # Check taxonomy - IDs to genus only, a few Phylica that were not in the accepted name list for some reason, a moss, and a few new or indet species
+# li_data |> filter(is.na(OtherCoverType) & is.na(Genus_Species_Combo)) |> View() # Check that all OtherCoverType = NA can be set to "LivePlant"
+# sum(!summary(as.factor(li_data$SiteCode_Plot_LineTransect)) == 22) # Check that there are 22 obs per line transect
+# which(!summary(as.factor(li_data$SiteCode_Plot_LineTransect)) == 22) #Had to separate into two sections for Doug's sheet (Bio4)
+# sum(!summary(as.factor(li_data$SiteCode_Plot)) == 44) # Check that there are 44 obs per plot (i.e. both line transects) - probably redundant
+# which(!summary(as.factor(li_data$SiteCode_Plot)) == 44)
+# sum(!summary(as.factor(li_data$MetresAlongLine)) == 2*length(unique(li_data$Plot))) # Check that no intercept points were missed
+# which(!summary(as.factor(li_data$MetresAlongLine)) == 2*length(unique(li_data$Plot)))
+
+# Need to deal with "CapePeninsula_96" - test plot. Check if we should delete/ignore?
+# Did Doug do all his line intercepts in one sheet??
+
+list(sites=sitesheet,quaddata=data,linedata=li_data)
 
 }
 
@@ -145,20 +193,41 @@ sites <- map(alldata, function(x) x["sites"][[1]] %>%
               mutate(PostFireAge_years = as.character(PostFireAge_years))#,
                 #VegHeight_cm = as.character(VegHeight_cm),
                 #Date = as.character(Date))
-             ) %>%   # convert problem column to character due to varying inputs     #NEED FIX
+            ) %>%   # convert problem column to character due to varying inputs     #NEED FIX
   bind_rows() %>%
+  mutate(across(starts_with("Site"), tolower)) %>%
   filter(!is.na(Plot))
 
 
 quads <- map(alldata, function(x) x["quaddata"][[1]]) %>%  
 #               select(-PostFireAge_years)) %>%   # drop problem column due to varying inputs         #NEED FIX
   bind_rows() %>%
+  mutate(across(starts_with("Site"), tolower)) %>%
   filter(!is.na(Plot)) %>%
   mutate(SeasonallyApparent = as.numeric(case_match(SeasonallyApparent, c("1","yes","Y","Yes") ~ 1,
                                          c("no", "No", "N") ~ 0)),
          Clonal = as.numeric(case_match(Clonal_YesNo, c("yes","Yes") ~ 1,
                                                     c("no", "No") ~ 0)))
 
+
+linetransects <- map(alldata, function(x) x["linedata"][[1]]) %>%  
+  bind_rows() %>%
+  mutate(across(starts_with("Site"), tolower))
+
+#Checks within linetransect
+linetransects |> filter(NameCheck == "#N/A" & !is.na(Genus_Species_Combo)) |> View() # Check taxonomy - IDs to genus only, a few Phylica that were not in the accepted name list for some reason, a moss, and a few new or indet species
+linetransects |> filter(is.na(OtherCoverType) & is.na(Genus_Species_Combo)) |> View() # Check that all OtherCoverType = NA can be set to "LivePlant"
+sum(!summary(as.factor(linetransects$SiteCode_Plot_LineTransect)) == 22) # Check that there are 22 obs per line transect
+which(!summary(as.factor(linetransects$SiteCode_Plot_LineTransect)) == 22) #Had to separate into two sections for Doug's sheet (Bio4)
+sum(!summary(as.factor(linetransects$SiteCode_Plot)) == 44) # Check that there are 44 obs per plot (i.e. both line transects) - probably redundant
+which(!summary(as.factor(linetransects$SiteCode_Plot)) == 44)
+sum(!summary(as.factor(linetransects$MetresAlongLine)) == 2*length(unique(linetransects$Plot))) # Check that no intercept points were missed
+which(!summary(as.factor(linetransects$MetresAlongLine)) == 2*length(unique(linetransects$Plot)))
+
+
+#Checks between dataframes
+sort(unique(quads$SiteCode_Plot)[-which(unique(quads$SiteCode_Plot) %in% unique(linetransects$SiteCode_Plot))])
+sort(unique(linetransects$SiteCode_Plot)[-which(unique(linetransects$SiteCode_Plot) %in% unique(quads$SiteCode_Plot))])
 
 ################################
 ### Species names check
