@@ -2,7 +2,7 @@
 .Rproj.user
 _site/*
 *.csv
-.Rhistory
+*.Rhistory*
 index_files
 data/*
 spatialdata/*
