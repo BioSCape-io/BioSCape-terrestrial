@@ -10,3 +10,4 @@ output/*
 index_cache
 .DS_Store
 webdata
+.Rhistory
