@@ -133,11 +133,11 @@ data <- data_downloaded %>%
 lineint_sheets <- sheets[grepl("lineintercept|LineIntercept|lineIntercept|Lineintercept", sheets,ignore.case = T) & 
                         !grepl("Template_LineIntercept|Template_lineintercept|Example", sheets) & 
                         #  !grepl("Swartberg_20_plot",sheets) & #swartberg 20 is empty - deleted from GoogleSheets
-                        !grepl("Gardenroute_T275_plot",sheets) & #Adam Labuschagne's "dodgy" plots
-                        !grepl("Gardenroute_T139_plot",sheets) & #Adam Labuschagne's "dodgy" plots
-                        !grepl("Gardenroute_T051_plot",sheets) & #Adam Labuschagne's "dodgy" plots
-                        !grepl("Gardenroute_T053_plot",sheets) & #Adam Labuschagne's "dodgy" plots
-                        !grepl("Hawequas_194 Plot",sheets) & #Adam Labuschagne's "dodgy" plots
+                        !grepl("Gardenroute_T275_lineintercept",sheets) & #Adam Labuschagne's "dodgy" plots
+                        !grepl("Gardenroute_T139_lineintercept",sheets) & #Adam Labuschagne's "dodgy" plots
+                        !grepl("Gardenroute_T051_lineintercept",sheets) & #Adam Labuschagne's "dodgy" plots
+                        !grepl("Gardenroute_T053_lineintercept",sheets) & #Adam Labuschagne's "dodgy" plots
+                        !grepl("Hawequas_194 LineIntercept",sheets) & #Adam Labuschagne's "dodgy" plots
                         !grepl("test",sheets)
 ] 
 
