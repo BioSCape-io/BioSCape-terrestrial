@@ -249,7 +249,7 @@ manual_overrides <- tribble(
   "datasheet2",                                       NA_character_,
   "red webbing",                                      NA_character_,
   "No idea",                                          NA_character_,
-  "Thymelaeaceae probably",                            NA_character_,
+  "Thymelaeaceae probably",                           "Thymelaeaceae",
   "buck droppings",                                   NA_character_,
   "much dung",                                        NA_character_,
   "Views of",                                         NA_character_,
@@ -570,6 +570,95 @@ photo_species <- photo_all2 |>
 cat("Unique plot × species combinations in photos (corrected):", nrow(photo_species), "\n")
 ```
 
+### Fill genus-only photos from plot-level survey species
+
+The plot × species table from the vegetation survey (`spd_species`) is treated as the authoritative record of what taxa are present at each plot. When a photo was corrected only to genus level (`match_type == "genus_only"`) and the corresponding plot's survey list contains **exactly one** species in that genus, the photo's species epithet is filled from the survey record. When the survey list contains multiple species of the same genus at that plot, no fill is applied — the match is ambiguous. When the genus is absent from the plot's survey list entirely, no fill is applied. Filled rows are stamped `match_type = "spd_fill"` and `match_dist = NA` to keep them distinguishable from name-level fuzzy corrections; the survey record's capitalisation is preserved. Only `genus_only` rows are candidates — `excluded` and `no_match` classifications are never overwritten.
+
+```{r, message=FALSE, warning=FALSE}
+# Per-plot × genus lookup: how many distinct species does the survey record
+# under this genus at this plot, and (when exactly one) which species?
+spd_genus_lookup <- spd_species |>
+  group_by(plot, genus_l) |>
+  summarise(
+    n_species     = n_distinct(species_l),
+    spd_species   = first(species),
+    spd_species_l = first(species_l),
+    .groups       = "drop"
+  )
+
+# Snapshot the pre-fill genus_only count for reporting.
+n_genus_only_before <- sum(
+  photo_all2$match_type == "genus_only" & photo_all2$photo_type == "species",
+  na.rm = TRUE
+)
+
+photo_all2 <- photo_all2 |>
+  mutate(corrected_genus_l = str_to_lower(str_trim(corrected_genus))) |>
+  left_join(spd_genus_lookup,
+            by = c("plot" = "plot", "corrected_genus_l" = "genus_l")) |>
+  mutate(
+    # Fill applies only to genus_only rows where the plot's survey list has
+    # exactly one species in the matched genus.
+    spd_fill_applied = photo_type == "species" &
+                       !is.na(match_type) & match_type == "genus_only" &
+                       !is.na(n_species) & n_species == 1L &
+                       !is.na(spd_species_l),
+    corrected_species = if_else(spd_fill_applied, spd_species, corrected_species),
+    match_type        = if_else(spd_fill_applied, "spd_fill", match_type),
+    match_dist        = if_else(spd_fill_applied, NA_real_, match_dist)
+  ) |>
+  select(-corrected_genus_l, -n_species, -spd_species, -spd_species_l,
+         -spd_fill_applied)
+
+# Rebuild the per-plot photo species list so downstream joins see the fills.
+photo_species <- photo_all2 |>
+  st_drop_geometry() |>
+  filter(photo_type == "species", !is.na(corrected_genus), !is.na(plot)) |>
+  mutate(
+    genus_l   = str_to_lower(str_trim(corrected_genus)),
+    species_l = str_to_lower(str_trim(corrected_species))
+  ) |>
+  distinct(plot,
+           genus   = corrected_genus,
+           species = corrected_species,
+           genus_l, species_l)
+
+n_filled <- sum(photo_all2$match_type == "spd_fill", na.rm = TRUE)
+n_genus_only_after <- sum(
+  photo_all2$match_type == "genus_only" & photo_all2$photo_type == "species",
+  na.rm = TRUE
+)
+
+cat("Genus-only photo rows before spd_species fill:", n_genus_only_before, "\n")
+cat("  filled from spd_species (unique species in genus at plot):", n_filled, "\n")
+cat("  remaining genus_only (0 or >1 species in genus at plot):  ",
+    n_genus_only_after, "\n")
+cat("Unique plot × species combinations in photos (after spd_fill):",
+    nrow(photo_species), "\n")
+```
+
+The table below lists every photo whose species was filled from the plot-level survey record. Each fill represents a plot-scoped inference (not a string-distance match), so review is warranted before downstream use.
+
+```{r, message=FALSE, warning=FALSE}
+photo_all2 |>
+  st_drop_geometry() |>
+  filter(match_type == "spd_fill") |>
+  select(plot, botanist, filename,
+         photo_genus   = corrected_genus,
+         photo_species_original = species_clean,
+         filled_species = corrected_species) |>
+  arrange(plot, photo_genus, filename) |>
+  datatable(
+    caption = paste0(
+      "Photos with species filled from the plot-level survey list ",
+      "(match_type = 'spd_fill'; exactly one species of the matched genus ",
+      "recorded at that plot in spd_species)."
+    ),
+    options = list(pageLength = 20, scrollX = TRUE),
+    rownames = FALSE
+  )
+```
+
 ### Species in survey data with no matched photo
 
 Surveyed species that have no corresponding photo after fuzzy correction. These represent taxa observed during the vegetation survey that were either not photographed during the rarefaction walk, or whose photo names deviate too far from the verified name to be auto-corrected (distance ≥ threshold).
@@ -684,9 +773,9 @@ plot_summary <- photo_all2 |>
       rarefaction_duplicate == TRUE, na.rm = TRUE
     ),
 
-    # Species richness: distinct fuzzy-corrected name combinations from
-    # species-type photos; corrected_genus is NA for manually excluded entries,
-    # so the !is.na() guard also drops those.
+    # Species richness: distinct corrected name combinations from species-type
+    # photos (includes exact, fuzzy, and spd_fill resolutions; corrected_genus
+    # is NA for manually excluded entries, so the !is.na() guard drops those).
     n_species = n_distinct(paste(
       corrected_genus[photo_type == "species" & !is.na(corrected_genus)],
       corrected_species[photo_type == "species" & !is.na(corrected_genus)]
