@@ -37,13 +37,13 @@ library(cowplot)
 library(DT)
 # Downloading Data
 photo_all_file <- paste0("data/", "vegphoto_all_v20250228", ".csv")
-pb_download(file = "vegphoto_all_v20250228.csv", dest = "data", tag = "vegphoto_v20250228")
+#pb_download(file = "vegphoto_all_v20250228.csv", dest = "data", tag = "vegphoto_v20250228")
 data <- read_csv(photo_all_file) %>% 
   st_as_sf(crs = 4326, coords = c("gps_longitude", "gps_latitude"))
 
 
 # Download spatial data
-pb_download(file="BioScapeSpatialProducts2024_11_12.zip",tag="v20241112",dest = "data")
+#pb_download(file="BioScapeSpatialProducts2024_11_12.zip",tag="v20241112",dest = "data")
 unzip("data/BioScapeSpatialProducts2024_11_12.zip",exdir = "data/spatial")
 
 
@@ -52,11 +52,11 @@ homogeneous=read_sf("data/spatial/BioSCapeVegPolys2024_11_12.shp")
 
 # download vegplot cover data
 pdatafile="bioscape_veg_plot_summary_v20241104.csv"
-pb_download(file=pdatafile,tag="v20241104",dest = "data")
+#pb_download(file=pdatafile,tag="v20241104",dest = "data")
 pdata=read_csv(file.path("data",pdatafile))
 
 vdatafile="bioscape_veg_plot_species_v20241104.csv"
-pb_download(file=vdatafile,tag="v20241104",dest = "data")
+#pb_download(file=vdatafile,tag="v20241104",dest = "data")
 vdata=read_csv(file.path("data",vdatafile))
 
 ```
@@ -543,6 +543,12 @@ if(F){
 Summary plot showing rarefaction curves and estimated species richness for each plot.
 
 ```{r}
+# Shared y-axis range so p1 and p2 line up
+y_max <- max(c(rdata$count[rdata$rarefaction_min <= 10],
+               rdatas$rarefaction_n_10min,
+               rdatas$rarefaction_n_max), na.rm = TRUE)
+y_lims <- c(0, y_max)
+
 p1 <- rdata %>%
   left_join(select(st_set_geometry(rdatas,NULL), BScpPID, rarefaction_n_10min)) %>% 
   filter(!is.na(BScpPID) & rarefaction_min <= 10) %>%
@@ -550,16 +556,18 @@ p1 <- rdata %>%
   geom_line(alpha=0.7) +
   labs(y = "Rarefaction Photos (Observed Unique Species)", x = "Search Minutes")+
   theme(legend.position = "none")+
-  scale_color_viridis_c(option="rocket")
+  scale_color_viridis_c(option="rocket")+
+  scale_y_continuous(limits = y_lims)
 
 p2 <- rdatas %>%
   ggplot(aes(x="All Plots",y = rarefaction_n_10min)) +
       geom_boxplot()+
   geom_jitter(width=0.1,alpha=.2)+
-  labs(y="")
+  labs(y="")+
+  scale_y_continuous(limits = y_lims)
 
 # Combine plots with aligned axes
-plot_grid(p1, p2, align = "v", rel_widths = c(.8,.2),axis = "tblr")  # Align horizontal and vertical axes
+plot_grid(p1, p2, align = "hv", rel_widths = c(.8,.2),axis = "tblr")  # Align horizontal and vertical axes
 
 ```
 
@@ -623,8 +631,8 @@ predicted_data %>%
 ## Rarefaction estimates compared to Dominant Species Richness
 
 ```{r}
-vegphoto_rarefied_plot |> 
-#rdatas |>
+#vegphoto_rarefied_plot |> 
+rdatas |>
 ggplot(aes(x = n_species, y = rarefaction_n_10min)) +
   geom_point()+#aes(color=rarefaction_replicates>1))+
   geom_smooth(method = "lm") +

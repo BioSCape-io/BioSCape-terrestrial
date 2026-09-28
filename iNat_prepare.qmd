@@ -36,7 +36,7 @@ library(knitr)
 # -------------------------------------------------------
 
 # Version tag of the photo_all file from botanist_photo_processing.qmd
-photo_version <- "v20250228"
+photo_version <- "v20260622"
 
 # Number of observations per iNat batch CSV
 batch_size <- 50
@@ -73,16 +73,20 @@ photo_all <- read_csv(photo_all_file, show_col_types = FALSE)
 # Validate that the newfile column exists and is populated.
 # The 'newfile' column is created by the photo-renaming chunk in
 # botanist_photo_processing.qmd (currently eval=F — must be run manually first).
+# If it is absent we add an all-NA column so downstream code can still run;
+# observations without a renamed file will simply have no media attached.
 if (!"newfile" %in% names(photo_all)) {
-  stop(
-    "Column 'newfile' not found in photo_all.\n",
-    "Run the photo-renaming chunk in botanist_photo_processing.qmd first."
+  warning(
+    "Column 'newfile' not found in photo_all. ",
+    "Run the photo-renaming chunk in botanist_photo_processing.qmd to attach photos. ",
+    "Continuing without media — all media_name_* columns will be NA."
   )
+  photo_all <- photo_all |> mutate(newfile = NA_character_)
 }
 
 n_missing_newfile <- sum(is.na(photo_all$newfile))
 if (n_missing_newfile > 0) {
-  warning(
+  message(
     n_missing_newfile,
     " rows have NA in 'newfile'. These observations will have no media attached."
   )
@@ -220,7 +224,7 @@ qa_flags <- inat_table |>
     flag_high_pos    = !is.na(pos_acc) & pos_acc > 100  # >100 m accuracy is suspicious
   ) |>
   filter(flag_no_media | flag_no_taxon | flag_no_coords | flag_high_pos) |>
-  select(id, BScpPID, taxon_name, n_photos,
+  select(id, location, taxon_name, n_photos,
          flag_no_media, flag_no_taxon, flag_no_coords, flag_high_pos)
 
 cat("Observations with QA flags:", nrow(qa_flags), "\n")
@@ -235,7 +239,7 @@ if (nrow(qa_flags) > 0) {
 
 ```{r preview}
 inat_table |>
-  select(id, taxon_name, date_obs, BScpPID, latitude, longitude,
+  select(id, taxon_name, date_obs, location, latitude, longitude,
          n_photos, batch, media_name_1) |>
   slice(1:20) |>
   datatable(caption = "First 20 iNat observations (preview)")
