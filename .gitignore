@@ -2,11 +2,12 @@
 .Rproj.user
 _site/*
 *.csv
-.Rhistory
+*.Rhistory*
 index_files
 data/*
+spatialdata/*
+output/*
 index_cache
 .DS_Store
-.Rhistory
 webdata
 **/*.quarto_ipynb
