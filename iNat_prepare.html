@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Adam M. Wilson, Jasper Slingsby, and the BioSCape Team">
+<meta name="dcterms.date" content="2026-10-01">
+
+<title>BioSCape iNaturalist Upload Preparation – BiOSCape Terrestrial Data</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-158031087360bce0ff56dc785ce39e06.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<link href="site_libs/htmltools-fill-0.5.9/fill.css" rel="stylesheet">
+<script src="site_libs/htmlwidgets-1.6.4/htmlwidgets.js"></script>
+<link href="site_libs/datatables-css-0.0.0/datatables-crosstalk.css" rel="stylesheet">
+<script src="site_libs/datatables-binding-0.34.0/datatables.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<link href="site_libs/dt-core-1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
+<link href="site_libs/dt-core-1.13.6/css/jquery.dataTables.extra.css" rel="stylesheet">
+<script src="site_libs/dt-core-1.13.6/js/jquery.dataTables.min.js"></script>
+<link href="site_libs/crosstalk-1.2.2/css/crosstalk.min.css" rel="stylesheet">
+<script src="site_libs/crosstalk-1.2.2/js/crosstalk.min.js"></script>
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">BiOSCape Terrestrial Data</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./Vegplot_Rarefaction.html"> 
+<span class="menu-text">Rarefaction</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./botanist_photo_processing.html"> 
+<span class="menu-text">Botanist Photo Processing</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#summary" id="toc-summary" class="nav-link active" data-scroll-target="#summary">Summary</a></li>
+  <li><a href="#load-photo-data" id="toc-load-photo-data" class="nav-link" data-scroll-target="#load-photo-data">Load photo data</a></li>
+  <li><a href="#filter-to-species-photos" id="toc-filter-to-species-photos" class="nav-link" data-scroll-target="#filter-to-species-photos">Filter to species photos</a></li>
+  <li><a href="#collapse-to-one-row-per-species-plot" id="toc-collapse-to-one-row-per-species-plot" class="nav-link" data-scroll-target="#collapse-to-one-row-per-species-plot">Collapse to one row per species × plot</a></li>
+  <li><a href="#build-inat-template-table" id="toc-build-inat-template-table" class="nav-link" data-scroll-target="#build-inat-template-table">Build iNat template table</a></li>
+  <li><a href="#qa-check" id="toc-qa-check" class="nav-link" data-scroll-target="#qa-check">QA check</a></li>
+  <li><a href="#preview" id="toc-preview" class="nav-link" data-scroll-target="#preview">Preview</a></li>
+  <li><a href="#batch-summary" id="toc-batch-summary" class="nav-link" data-scroll-target="#batch-summary">Batch summary</a></li>
+  <li><a href="#write-batch-csv-files" id="toc-write-batch-csv-files" class="nav-link" data-scroll-target="#write-batch-csv-files">Write batch CSV files</a></li>
+  <li><a href="#next-steps" id="toc-next-steps" class="nav-link" data-scroll-target="#next-steps">Next steps</a></li>
+  <li><a href="#write-inatid-back-to-the-species-tables" id="toc-write-inatid-back-to-the-species-tables" class="nav-link" data-scroll-target="#write-inatid-back-to-the-species-tables">Write iNatID back to the species tables</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">BioSCape iNaturalist Upload Preparation</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Adam M. Wilson, Jasper Slingsby, and the BioSCape Team </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">October 1, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="summary" class="level2">
+<h2 class="anchored" data-anchor-id="summary">Summary</h2>
+<p>This script reads the cleaned photo dataset produced by <code>botanist_photo_processing.qmd</code> and prepares batch CSV files for the iNaturalist bulk uploader (<code>workflow/dist/iNat_bulk_uploader.exe</code>; see <code>workflow/dist/readme.txt</code>).</p>
+<p>Each output row is one corrected species at one plot. Photos of that species at that plot, including different raw spellings and rarefaction species photos, are collapsed into up to 10 <code>media_name_*</code> columns. Kept rows have <code>photo_type == "species"</code> and <code>match_type</code> of <code>exact</code>, <code>fuzzy</code>, <code>spd_fill</code>, or <code>genus_only</code>. Plot photos (cardinal shots, overviews, rarefaction markers, datasheets), blank names, <code>no_match</code>, and <code>excluded</code> rows are not uploaded. Observations are split into batches of 50.</p>
+<p>The batch CSVs are written only after two things are true: <code>newfile</code> is populated by the photo-copy chunk, and both numeric observation-field ids below are set. Until then the notebook still builds the observation table so it can be reviewed. <code>field_id*</code> is the number in <code>https://www.inaturalist.org/observation_fields/&lt;id&gt;</code>. The uploader readme documents only these two field pairs.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>iNat field</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>id</code></td>
+<td>Sequential integer. The uploader prints this as each row starts. It is not the iNaturalist observation id.</td>
+</tr>
+<tr class="even">
+<td><code>taxon_name</code></td>
+<td>Corrected binomial, or the corrected genus alone for <code>genus_only</code></td>
+</tr>
+<tr class="odd">
+<td><code>date_obs</code></td>
+<td>Earliest photo date, <code>DD/MM/YYYY</code></td>
+</tr>
+<tr class="even">
+<td><code>time_zone</code></td>
+<td><code>Africa/Johannesburg</code></td>
+</tr>
+<tr class="odd">
+<td><code>description</code></td>
+<td><code>SiteCode_Plot</code>, <code>SiteCode</code>, <code>Plot</code>, taxon, botanist, and photo notes</td>
+</tr>
+<tr class="even">
+<td><code>tag_list</code></td>
+<td><code>BioSCape</code></td>
+</tr>
+<tr class="odd">
+<td><code>latitude</code>, <code>longitude</code></td>
+<td>Mean GPS of the photos in the group</td>
+</tr>
+<tr class="even">
+<td><code>location</code></td>
+<td><code>SiteCode_Plot</code></td>
+</tr>
+<tr class="odd">
+<td><code>pos_acc</code></td>
+<td>Maximum <code>gps_position_error</code>, in meters</td>
+</tr>
+<tr class="even">
+<td><code>geoprivacy</code></td>
+<td><code>open</code></td>
+</tr>
+<tr class="odd">
+<td><code>field_id1</code>, <code>field_value1</code></td>
+<td>Numeric id of <code>BioSCape SiteCode_Plot</code>, and the <code>SiteCode_Plot</code> value</td>
+</tr>
+<tr class="even">
+<td><code>field_id2</code>, <code>field_value2</code></td>
+<td>Numeric id of <code>BioSCape Genus_Species_combo</code>, and the uploaded taxon</td>
+</tr>
+<tr class="odd">
+<td><code>media_name_1</code>–<code>media_name_10</code></td>
+<td><code>basename(newfile)</code>, at most 10. <code>none</code> when that observation has no photo</td>
+</tr>
+</tbody>
+</table>
+<p>After upload, the last section reads <code>data/inat_export.csv</code>. <code>iNatID</code> is the export <code>id</code>: the number in <code>https://www.inaturalist.org/observations/&lt;id&gt;</code>, also usable as <code>https://www.inaturalist.org/observations?id=&lt;id&gt;</code>. It is joined on <code>SiteCode_Plot</code> and the uploaded taxon, ignoring case, and written to <code>data/bioscape_veg_plot_species_v20241104_inat.csv</code> and <code>data/bioscape_veg_quadrat_species_v20241104_inat.csv</code>. The v20241104 files are not modified. The same id is copied onto every quadrat row of that species at that plot. Genus-only observations and binomials that are not in the survey are uploaded, and they do not fill <code>iNatID</code>. If two observations match one species row, the smallest id is kept. If the export is not there yet, that section reports so and stops.</p>
+<p><strong>Prerequisites:</strong></p>
+<ol type="1">
+<li>Run <code>botanist_photo_processing.qmd</code> to produce <code>data/vegphoto_all_&lt;version&gt;.csv</code>.</li>
+<li>On iNaturalist, create two observation fields and paste their numeric ids (the number in <code>https://www.inaturalist.org/observation_fields/&lt;id&gt;</code>) into the parameters below. Name them exactly <code>BioSCape SiteCode_Plot</code> and <code>BioSCape Genus_Species_combo</code>. The uploader stores the number, not the name.</li>
+<li>Run the photo-copy chunk in <code>botanist_photo_processing.qmd</code> (<code>eval=F</code>) so <code>newfile</code> is written back onto the vegphoto CSV.</li>
+<li>The uploader is a Windows program. Copy one batch CSV and every JPEG it names into a single folder, run the exe there, and copy <code>workflow/dist/log.csv</code> aside after each batch. The log is replaced on the next run.</li>
+</ol>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(piggyback)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DT)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co"># -------------------------------------------------------</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co"># User parameters — update these before running</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># -------------------------------------------------------</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Version tag of the photo_all file from botanist_photo_processing.qmd</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>photo_version <span class="ot">&lt;-</span> <span class="st">"v20260923"</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Number of observations per iNat batch CSV</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>batch_size <span class="ot">&lt;-</span> <span class="dv">50</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Output folder for batch CSVs</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>batch_dir <span class="ot">&lt;-</span> <span class="st">"data/inat_batches"</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="co"># iNat tag applied to every observation</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>inat_tag <span class="ot">&lt;-</span> <span class="st">"BioSCape"</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Time zone string for iNat (pytz name; see workflow/dist/readme.txt)</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>inat_timezone <span class="ot">&lt;-</span> <span class="st">"Africa/Johannesburg"</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Numeric observation-field ids. Leave NA until the fields exist on iNaturalist.</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="co"># field_id in the batch CSV must be this number, not the field's display name.</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>inat_field_id_siteplot <span class="ot">&lt;-</span> <span class="cn">NA_integer_</span>   <span class="co"># "BioSCape SiteCode_Plot"</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>inat_field_id_taxon    <span class="ot">&lt;-</span> <span class="cn">NA_integer_</span>   <span class="co"># "BioSCape Genus_Species_combo"</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="co"># Display names used to find the same fields in an iNat export.</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>inat_field_name_siteplot <span class="ot">&lt;-</span> <span class="st">"BioSCape SiteCode_Plot"</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>inat_field_name_taxon    <span class="ot">&lt;-</span> <span class="st">"BioSCape Genus_Species_combo"</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a><span class="co"># -------------------------------------------------------</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="co"># Derived paths</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a><span class="co"># -------------------------------------------------------</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>photo_all_file <span class="ot">&lt;-</span> <span class="fu">file.path</span>(<span class="st">"data"</span>, <span class="fu">paste0</span>(<span class="st">"vegphoto_all_"</span>, photo_version, <span class="st">".csv"</span>))</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>plot_species_file <span class="ot">&lt;-</span> <span class="st">"data/bioscape_veg_plot_species_v20241104.csv"</span></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>quad_species_file <span class="ot">&lt;-</span> <span class="st">"data/bioscape_veg_quadrat_species_v20241104.csv"</span></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>plot_inat_file <span class="ot">&lt;-</span> <span class="st">"data/bioscape_veg_plot_species_v20241104_inat.csv"</span></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>quad_inat_file <span class="ot">&lt;-</span> <span class="st">"data/bioscape_veg_quadrat_species_v20241104_inat.csv"</span></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>inat_export_file <span class="ot">&lt;-</span> <span class="st">"data/inat_export.csv"</span></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a><span class="co"># Up to 10 media columns, matching the columns documented in the uploader readme.</span></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>max_media <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>field_id_chr <span class="ot">&lt;-</span> <span class="cf">function</span>(x) {</span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(x) <span class="sc">!=</span> <span class="dv">1</span> <span class="sc">||</span> <span class="fu">is.na</span>(x)) <span class="cn">NA_character_</span> <span class="cf">else</span> <span class="fu">as.character</span>(x)</span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+<section id="load-photo-data" class="level2">
+<h2 class="anchored" data-anchor-id="load-photo-data">Load photo data</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Download from GitHub release if not present locally</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">file.exists</span>(photo_all_file)) {</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pb_download</span>(</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">file    =</span> <span class="fu">basename</span>(photo_all_file),</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">dest    =</span> <span class="st">"data"</span>,</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">tag     =</span> <span class="fu">paste0</span>(<span class="st">"vegphoto_"</span>, photo_version)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>photo_all <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(photo_all_file, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co"># The photo-copy chunk writes `newfile`. Until it has been run, keep an empty</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co"># column so the observation table can still be reviewed. Batch CSVs are not</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co"># written in that state.</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="st">"newfile"</span> <span class="sc">%in%</span> <span class="fu">names</span>(photo_all)) {</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Column 'newfile' is not in the vegphoto file. "</span>,</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Run the photo-copy chunk in botanist_photo_processing.qmd before uploading. "</span>,</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="st">"The observation table will be built without media paths."</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>  photo_all <span class="ot">&lt;-</span> photo_all <span class="sc">|&gt;</span> <span class="fu">mutate</span>(<span class="at">newfile =</span> <span class="cn">NA_character_</span>)</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>n_missing_newfile <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">is.na</span>(photo_all<span class="sc">$</span>newfile))</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (n_missing_newfile <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(n_missing_newfile, <span class="st">" photo rows have no newfile path."</span>)</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a><span class="co"># `plot` in the vegphoto file is the same code as species `Plot` (for example T001).</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="st">"plot"</span> <span class="sc">%in%</span> <span class="fu">names</span>(photo_all)) {</span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">"Column 'plot' is missing from "</span>, photo_all_file, <span class="st">"."</span>)</span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>veg_plot_species <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(plot_species_file, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>veg_plots <span class="ot">&lt;-</span> veg_plot_species <span class="sc">|&gt;</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(SiteCode, Plot, SiteCode_Plot)</span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>photo_all <span class="ot">&lt;-</span> photo_all <span class="sc">|&gt;</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">Plot =</span> plot) <span class="sc">|&gt;</span></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(veg_plots, <span class="at">by =</span> <span class="st">"Plot"</span>)</span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(photo_all)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 11,592
+Columns: 45
+$ folder                &lt;chr&gt; "BioSCape_Admin/VegPlots/Photos/BioSCape1_Ross//…
+$ filename              &lt;chr&gt; "IMG_0006.HEIC", "IMG_0014.HEIC", "IMG_0015.HEIC…
+$ description           &lt;chr&gt; NA, NA, NA, "Romulea rosea with Stachys aetiopic…
+$ location              &lt;chr&gt; NA, NA, NA, "Romulea rosea with Stachys aetiopic…
+$ plot_number           &lt;chr&gt; NA, NA, NA, NA, "171.0", "171.0", "171.0", "171.…
+$ genus                 &lt;chr&gt; NA, NA, NA, NA, "South", "South", "South", "Cent…
+$ species               &lt;chr&gt; NA, NA, NA, NA, "view", "view.2", "view.3", NA, …
+$ plot_photo            &lt;dbl&gt; NA, NA, NA, NA, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,…
+$ inat_photo            &lt;lgl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ rarefaction_photo     &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ rarefaction_replicate &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ rarefaction_duplicate &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ Notes                 &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ gps_latitude          &lt;dbl&gt; -34.08549, -34.19239, -34.19237, -34.19236, -32.…
+$ gps_longitude         &lt;dbl&gt; 18.42051, 24.83940, 24.83940, 24.83940, 19.02682…
+$ gps_altitude          &lt;dbl&gt; 320.18445, 21.59512, 22.49422, 22.38942, 895.220…
+$ gps_position_error    &lt;dbl&gt; 4.750614, 4.581170, 4.755119, 4.773801, 4.728455…
+$ modify_date           &lt;dttm&gt; 2023-03-27 13:55:32, 2023-04-19 14:19:37, 2023-…
+$ date                  &lt;date&gt; 2023-03-27, 2023-04-19, 2023-04-19, 2023-04-19,…
+$ time                  &lt;chr&gt; "13H 55M 32S", "14H 19M 37S", "14H 20M 38S", "14…
+$ offset_time           &lt;chr&gt; "=+02:00", "=+02:00", "=+02:00", "=+02:00", "=+0…
+$ image_width           &lt;dbl&gt; 4032, 4032, 4032, 4032, 3024, 4032, 4032, 4032, …
+$ image_height          &lt;dbl&gt; 3024, 3024, 3024, 3024, 4032, 3024, 3024, 3024, …
+$ gps_datestamp         &lt;chr&gt; "2023:03:27 13:55:32", "2023:04:19 14:19:37", "2…
+$ file_type             &lt;chr&gt; "HEIC", "HEIC", "HEIC", "HEIC", "HEIC", "HEIC", …
+$ media_group_uuid      &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ file_base             &lt;chr&gt; "IMG_0006", "IMG_0014", "IMG_0015", "IMG_0016", …
+$ botanist              &lt;chr&gt; "Ross", "Ross", "Ross", "Ross", "Ross", "Ross", …
+$ id                    &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ file_url              &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ datetime              &lt;dttm&gt; 2023-03-27 13:55:32, 2023-04-19 14:19:37, 2023-…
+$ photo_type            &lt;chr&gt; "species", "species", "species", "species", "plo…
+$ notes                 &lt;lgl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ plot_closest          &lt;chr&gt; "T089", "T046", "T046", "T046", "T171", "T171", …
+$ dist_to_plot_m        &lt;dbl&gt; 1, 146588, 146587, 146587, 26, 26, 26, 1, 1, 5, …
+$ Plot                  &lt;chr&gt; "T089", NA, NA, NA, "T171", "T171", "T171", "T17…
+$ species_clean         &lt;chr&gt; NA, NA, NA, NA, "view", "view", "view", NA, NA, …
+$ species_notes         &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, "0", NA, "0", "0…
+$ corrected_genus       &lt;chr&gt; NA, NA, NA, NA, "South", "South", "South", "Cent…
+$ corrected_species     &lt;chr&gt; NA, NA, NA, NA, "view", "view.2", "view.3", NA, …
+$ match_type            &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ match_dist            &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ newfile               &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ SiteCode              &lt;chr&gt; "capepoint", NA, NA, NA, "cederberg", "cederberg…
+$ SiteCode_Plot         &lt;chr&gt; "capepoint_T089", NA, NA, NA, "cederberg_T171", …</code></pre>
+</div>
+</div>
+</section>
+<section id="filter-to-species-photos" class="level2">
+<h2 class="anchored" data-anchor-id="filter-to-species-photos">Filter to species photos</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot photos stay out. Rarefaction species photos stay in: many taxa have</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co"># no other photo. Blank names, failed matches, and manual exclusions stay out.</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Genus-only rows upload as a genus. Corrected binomials upload even when that</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># species is not on the plot's survey list.</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>species_photos <span class="ot">&lt;-</span> photo_all <span class="sc">|&gt;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    photo_type <span class="sc">==</span> <span class="st">"species"</span>,</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    match_type <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"exact"</span>, <span class="st">"fuzzy"</span>, <span class="st">"spd_fill"</span>, <span class="st">"genus_only"</span>),</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="sc">!</span><span class="fu">is.na</span>(corrected_genus),</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="sc">!</span><span class="fu">is.na</span>(Plot),</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    match_type <span class="sc">==</span> <span class="st">"genus_only"</span> <span class="sc">|</span> <span class="sc">!</span><span class="fu">is.na</span>(corrected_species)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">Genus_Species_combo =</span> <span class="fu">if_else</span>(</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>      match_type <span class="sc">==</span> <span class="st">"genus_only"</span>,</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>      <span class="cn">NA_character_</span>,</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>      <span class="fu">str_squish</span>(<span class="fu">paste</span>(corrected_genus, corrected_species))</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">taxon_name =</span> <span class="fu">if_else</span>(</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>      match_type <span class="sc">==</span> <span class="st">"genus_only"</span>,</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>      corrected_genus,</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>      Genus_Species_combo</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">date_obs =</span> <span class="fu">format</span>(<span class="fu">as.Date</span>(date), <span class="st">"%d/%m/%Y"</span>),</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">photo_basename =</span> <span class="fu">basename</span>(newfile)</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>n_no_site <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">is.na</span>(species_photos<span class="sc">$</span>SiteCode_Plot))</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (n_no_site <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">warning</span>(</span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>    n_no_site,</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>    <span class="st">" species photos have a plot code with no SiteCode_Plot in the species table."</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Species photos available for iNat upload:"</span>, <span class="fu">nrow</span>(species_photos), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Species photos available for iNat upload: 4408 </code></pre>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"  binomials:  "</span>, <span class="fu">sum</span>(<span class="sc">!</span><span class="fu">is.na</span>(species_photos<span class="sc">$</span>Genus_Species_combo)), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>  binomials:   3881 </code></pre>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"  genus-only: "</span>, <span class="fu">sum</span>(<span class="fu">is.na</span>(species_photos<span class="sc">$</span>Genus_Species_combo)), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>  genus-only:  527 </code></pre>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Unique taxa:  "</span>, <span class="fu">n_distinct</span>(species_photos<span class="sc">$</span>taxon_name), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Unique taxa:   881 </code></pre>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Unique plots: "</span>, <span class="fu">n_distinct</span>(species_photos<span class="sc">$</span>Plot), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Unique plots:  157 </code></pre>
+</div>
+</div>
+</section>
+<section id="collapse-to-one-row-per-species-plot" class="level2">
+<h2 class="anchored" data-anchor-id="collapse-to-one-row-per-species-plot">Collapse to one row per species × plot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># One observation = one corrected taxon at one plot. Raw spellings that</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># corrected to the same name collapse together. Grouping is on `Plot`, not</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># `SiteCode_Plot`, so photos whose site lookup failed are not merged across plots.</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Grouping is not on `Genus_Species_combo`: that column is blank for every</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="co"># genus-only photo, and different genera at one plot must stay separate.</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>nth_photo <span class="ot">&lt;-</span> <span class="cf">function</span>(photos_list, n) {</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map_chr</span>(photos_list, <span class="sc">~</span> <span class="cf">if</span> (<span class="fu">length</span>(.x) <span class="sc">&gt;=</span> n) .x[[n]] <span class="cf">else</span> <span class="cn">NA_character_</span>)</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>inat_obs <span class="ot">&lt;-</span> species_photos <span class="sc">|&gt;</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(Plot, taxon_name, datetime) <span class="sc">|&gt;</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Plot, taxon_name) <span class="sc">|&gt;</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">SiteCode            =</span> <span class="fu">first</span>(SiteCode),</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">SiteCode_Plot       =</span> <span class="fu">first</span>(SiteCode_Plot),</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">Genus_Species_combo =</span> <span class="fu">first</span>(Genus_Species_combo),</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">date_obs            =</span> <span class="fu">first</span>(date_obs),</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">latitude            =</span> <span class="fu">mean</span>(gps_latitude, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">longitude           =</span> <span class="fu">mean</span>(gps_longitude, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">pos_acc             =</span> <span class="fu">max</span>(gps_position_error, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">botanist            =</span> <span class="fu">paste</span>(<span class="fu">unique</span>(<span class="fu">na.omit</span>(botanist)), <span class="at">collapse =</span> <span class="st">", "</span>),</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">notes               =</span> <span class="fu">paste</span>(<span class="fu">unique</span>(<span class="fu">na.omit</span>(description)), <span class="at">collapse =</span> <span class="st">" | "</span>),</span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">n_photos            =</span> <span class="fu">n</span>(),</span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">photos              =</span> <span class="fu">list</span>(<span class="fu">head</span>(<span class="fu">na.omit</span>(photo_basename), max_media)),</span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">pos_acc =</span> <span class="fu">if_else</span>(<span class="fu">is.infinite</span>(pos_acc), <span class="cn">NA_real_</span>, <span class="fu">round</span>(pos_acc, <span class="dv">1</span>)),</span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">notes   =</span> <span class="fu">if_else</span>(notes <span class="sc">==</span> <span class="st">""</span>, <span class="cn">NA_character_</span>, notes)</span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a>n_dup <span class="ot">&lt;-</span> inat_obs <span class="sc">|&gt;</span></span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(Plot, taxon_name) <span class="sc">|&gt;</span></span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(n <span class="sc">&gt;</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">nrow</span>()</span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (n_dup <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stop</span>(n_dup, <span class="st">" plot × taxon combinations are still duplicated after collapse."</span>)</span>
+<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a>n_over_cap <span class="ot">&lt;-</span> <span class="fu">sum</span>(inat_obs<span class="sc">$</span>n_photos <span class="sc">&gt;</span> max_media)</span>
+<span id="cb14-42"><a href="#cb14-42" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (n_over_cap <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb14-43"><a href="#cb14-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(</span>
+<span id="cb14-44"><a href="#cb14-44" aria-hidden="true" tabindex="-1"></a>    n_over_cap,</span>
+<span id="cb14-45"><a href="#cb14-45" aria-hidden="true" tabindex="-1"></a>    <span class="st">" observations have more than "</span>, max_media,</span>
+<span id="cb14-46"><a href="#cb14-46" aria-hidden="true" tabindex="-1"></a>    <span class="st">" photos. Extra photos are not included in the batch CSV."</span></span>
+<span id="cb14-47"><a href="#cb14-47" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb14-48"><a href="#cb14-48" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb14-49"><a href="#cb14-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-50"><a href="#cb14-50" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"iNat observations (one per plot × corrected taxon):"</span>, <span class="fu">nrow</span>(inat_obs), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>iNat observations (one per plot × corrected taxon): 2642 </code></pre>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Batches of"</span>, batch_size, <span class="st">"needed:"</span>,</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ceiling</span>(<span class="fu">nrow</span>(inat_obs) <span class="sc">/</span> batch_size), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Batches of 50 needed: 53 </code></pre>
+</div>
+</div>
+</section>
+<section id="build-inat-template-table" class="level2">
+<h2 class="anchored" data-anchor-id="build-inat-template-table">Build iNat template table</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>inat_table <span class="ot">&lt;-</span> inat_obs <span class="sc">|&gt;</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">id           =</span> <span class="fu">row_number</span>(),</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">time_zone    =</span> inat_timezone,</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">tag_list     =</span> inat_tag,</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">location     =</span> SiteCode_Plot,</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">geoprivacy   =</span> <span class="st">"open"</span>,</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Numeric field ids. Values are the strings written at upload so the</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># later join does not depend on iNat's current taxon name.</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">field_id1    =</span> <span class="fu">field_id_chr</span>(inat_field_id_siteplot),</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">field_value1 =</span> SiteCode_Plot,</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">field_id2    =</span> <span class="fu">field_id_chr</span>(inat_field_id_taxon),</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">field_value2 =</span> taxon_name,</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">description  =</span> <span class="fu">paste0</span>(</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>      <span class="st">"BioSCape Vegetation Plot="</span>, SiteCode_Plot,</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>      <span class="st">"; SiteCode="</span>, SiteCode,</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>      <span class="st">"; Plot="</span>, Plot,</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>      <span class="st">"; Taxon="</span>, taxon_name,</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>      <span class="st">"; Botanist="</span>, botanist,</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>      <span class="st">"; Notes="</span>, notes</span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">media_name_1  =</span> <span class="fu">nth_photo</span>(photos,  <span class="dv">1</span>),</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">media_name_2  =</span> <span class="fu">nth_photo</span>(photos,  <span class="dv">2</span>),</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">media_name_3  =</span> <span class="fu">nth_photo</span>(photos,  <span class="dv">3</span>),</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">media_name_4  =</span> <span class="fu">nth_photo</span>(photos,  <span class="dv">4</span>),</span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">media_name_5  =</span> <span class="fu">nth_photo</span>(photos,  <span class="dv">5</span>),</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">media_name_6  =</span> <span class="fu">nth_photo</span>(photos,  <span class="dv">6</span>),</span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">media_name_7  =</span> <span class="fu">nth_photo</span>(photos,  <span class="dv">7</span>),</span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">media_name_8  =</span> <span class="fu">nth_photo</span>(photos,  <span class="dv">8</span>),</span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">media_name_9  =</span> <span class="fu">nth_photo</span>(photos,  <span class="dv">9</span>),</span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">media_name_10 =</span> <span class="fu">nth_photo</span>(photos, <span class="dv">10</span>),</span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">batch         =</span> <span class="fu">ceiling</span>(id <span class="sc">/</span> batch_size)</span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(</span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a>    id, taxon_name, date_obs, time_zone, description, tag_list,</span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>    latitude, longitude, location, pos_acc, geoprivacy,</span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>    field_id1, field_value1, field_id2, field_value2,</span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a>    media_name_1, media_name_2, media_name_3, media_name_4, media_name_5,</span>
+<span id="cb18-39"><a href="#cb18-39" aria-hidden="true" tabindex="-1"></a>    media_name_6, media_name_7, media_name_8, media_name_9, media_name_10,</span>
+<span id="cb18-40"><a href="#cb18-40" aria-hidden="true" tabindex="-1"></a>    batch, n_photos, Plot, SiteCode, SiteCode_Plot, Genus_Species_combo</span>
+<span id="cb18-41"><a href="#cb18-41" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb18-42"><a href="#cb18-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a>obs_keys <span class="ot">&lt;-</span> inat_table <span class="sc">|&gt;</span></span>
+<span id="cb18-44"><a href="#cb18-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(Genus_Species_combo), <span class="sc">!</span><span class="fu">is.na</span>(SiteCode_Plot)) <span class="sc">|&gt;</span></span>
+<span id="cb18-45"><a href="#cb18-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">combo_key =</span> <span class="fu">str_to_lower</span>(Genus_Species_combo)) <span class="sc">|&gt;</span></span>
+<span id="cb18-46"><a href="#cb18-46" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(SiteCode_Plot, combo_key)</span>
+<span id="cb18-47"><a href="#cb18-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-48"><a href="#cb18-48" aria-hidden="true" tabindex="-1"></a>no_obs <span class="ot">&lt;-</span> veg_plot_species <span class="sc">|&gt;</span></span>
+<span id="cb18-49"><a href="#cb18-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">combo_key =</span> <span class="fu">str_to_lower</span>(<span class="fu">str_squish</span>(Genus_Species_combo))) <span class="sc">|&gt;</span></span>
+<span id="cb18-50"><a href="#cb18-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">anti_join</span>(obs_keys, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"SiteCode_Plot"</span>, <span class="st">"combo_key"</span>))</span>
+<span id="cb18-51"><a href="#cb18-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-52"><a href="#cb18-52" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Plot-species rows with no iNat observation:"</span>, <span class="fu">nrow</span>(no_obs), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Plot-species rows with no iNat observation: 522 </code></pre>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Observations with no SiteCode_Plot:"</span>, <span class="fu">sum</span>(<span class="fu">is.na</span>(inat_table<span class="sc">$</span>SiteCode_Plot)), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Observations with no SiteCode_Plot: 0 </code></pre>
+</div>
+</div>
+</section>
+<section id="qa-check" class="level2">
+<h2 class="anchored" data-anchor-id="qa-check">QA check</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Until the photo-copy chunk has run, every observation lacks media. That is</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="co"># reported once above. Flag individual rows only after some newfile values exist.</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>newfile_ready_qa <span class="ot">&lt;-</span> <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.na</span>(species_photos<span class="sc">$</span>newfile))</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>qa_flags <span class="ot">&lt;-</span> inat_table <span class="sc">|&gt;</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">flag_no_media  =</span> newfile_ready_qa <span class="sc">&amp;</span> <span class="fu">is.na</span>(media_name_1),</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">flag_no_taxon  =</span> <span class="fu">is.na</span>(taxon_name) <span class="sc">|</span> taxon_name <span class="sc">==</span> <span class="st">""</span>,</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">flag_no_coords =</span> <span class="fu">is.na</span>(latitude) <span class="sc">|</span> <span class="fu">is.na</span>(longitude),</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">flag_no_site   =</span> <span class="fu">is.na</span>(SiteCode_Plot),</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">flag_high_pos  =</span> <span class="sc">!</span><span class="fu">is.na</span>(pos_acc) <span class="sc">&amp;</span> pos_acc <span class="sc">&gt;</span> <span class="dv">100</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(flag_no_media <span class="sc">|</span> flag_no_taxon <span class="sc">|</span> flag_no_coords <span class="sc">|</span> flag_no_site <span class="sc">|</span> flag_high_pos) <span class="sc">|&gt;</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(id, location, taxon_name, n_photos,</span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>         flag_no_media, flag_no_taxon, flag_no_coords, flag_no_site, flag_high_pos)</span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Observations with QA flags:"</span>, <span class="fu">nrow</span>(qa_flags), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Observations with QA flags: 5 </code></pre>
+</div>
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">nrow</span>(qa_flags) <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  qa_flags <span class="sc">|&gt;</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">datatable</span>(<span class="at">caption =</span> <span class="st">"Observations with QA flags — review before uploading"</span>)</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div class="datatables html-widget html-fill-item" id="htmlwidget-dd2d5924e1e6930707f4" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-dd2d5924e1e6930707f4">{"x":{"filter":"none","vertical":false,"caption":"<caption>Observations with QA flags — review before uploading<\/caption>","data":[["1","2","3","4","5"],[78,125,193,1703,1741],["agulhas_T018","agulhas_T020","agulhas_T024","westcoast_T181","westcoast_T184"],["Leucadendron xanthoconus","Searsia rosmarinifolia","Passerina rigida","Cissampelos capensis","Osteospermum incanum"],[3,5,4,2,3],[false,false,false,false,false],[false,false,false,false,false],[false,false,false,false,false],[false,false,false,false,false],[true,true,true,true,true]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>id<\/th>\n      <th>location<\/th>\n      <th>taxon_name<\/th>\n      <th>n_photos<\/th>\n      <th>flag_no_media<\/th>\n      <th>flag_no_taxon<\/th>\n      <th>flag_no_coords<\/th>\n      <th>flag_no_site<\/th>\n      <th>flag_high_pos<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[1,4]},{"orderable":false,"targets":0},{"name":" ","targets":0},{"name":"id","targets":1},{"name":"location","targets":2},{"name":"taxon_name","targets":3},{"name":"n_photos","targets":4},{"name":"flag_no_media","targets":5},{"name":"flag_no_taxon","targets":6},{"name":"flag_no_coords","targets":7},{"name":"flag_no_site","targets":8},{"name":"flag_high_pos","targets":9}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+</section>
+<section id="preview" class="level2">
+<h2 class="anchored" data-anchor-id="preview">Preview</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>inat_table <span class="sc">|&gt;</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(id, taxon_name, date_obs, location, latitude, longitude,</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>         n_photos, batch, media_name_1) <span class="sc">|&gt;</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">20</span>) <span class="sc">|&gt;</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">datatable</span>(<span class="at">caption =</span> <span class="st">"First 20 iNat observations (preview)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div class="datatables html-widget html-fill-item" id="htmlwidget-05b66ae9112328ccfdd6" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-05b66ae9112328ccfdd6">{"x":{"filter":"none","vertical":false,"caption":"<caption>First 20 iNat observations (preview)<\/caption>","data":[["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20"],[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],["Aloe microstigma","Caroxylon aphyllum","Crassula subaphylla","Hermannia incana","Leipoldtia schultzei","Pentzia incana","Pteronia paniculata","Roepera foetida","Ruschia caroli","Searsia pallens","Chrysocoma ciliata","Drosanthemum speciosum","Euphorbia burmanii","Hirpicium integrifolium","Leipoldtia schultzei","Pteronia paniculata","Ruschia caroli","Tetragonia fruticosa","Ursinia pilifera","Aptosimum indivisum"],["09/10/2023","09/10/2023","09/10/2023","09/10/2023","09/10/2023","09/10/2023","09/10/2023","09/10/2023","09/10/2023","09/10/2023","18/09/2023","18/09/2023","18/09/2023","18/09/2023","18/09/2023","18/09/2023","18/09/2023","18/09/2023","18/09/2023","12/10/2023"],["vrolijkheid_T001","vrolijkheid_T001","vrolijkheid_T001","vrolijkheid_T001","vrolijkheid_T001","vrolijkheid_T001","vrolijkheid_T001","vrolijkheid_T001","vrolijkheid_T001","vrolijkheid_T001","vrolijkheid_T002","vrolijkheid_T002","vrolijkheid_T002","vrolijkheid_T002","vrolijkheid_T002","vrolijkheid_T002","vrolijkheid_T002","vrolijkheid_T002","vrolijkheid_T002","rooiberg_T003"],[-33.9596944444444,-33.95970648148147,-33.9597152777778,-33.95972777777776,-33.95971666666665,-33.9597,-33.95975833333335,-33.95971055555554,-33.9597194444444,-33.95974444444442,-33.9173277777778,-33.91729652777778,-33.91732129629627,-33.91730370370373,-33.91729444444444,-33.9172944444444,-33.9173055555556,-33.9173074074074,-33.9173534722222,-33.639244],[19.9021916666667,19.9022398148148,19.9021861111111,19.90223833333334,19.9021861111111,19.9022125,19.90212638888885,19.9022238888889,19.9021888888889,19.90217847222225,19.88424444444445,19.88425555555555,19.88424444444447,19.88426018518517,19.88427685185183,19.88423333333335,19.88425833333335,19.8842462962963,19.88426319444445,21.6516639],[1,3,2,5,2,2,2,5,2,4,2,4,3,3,3,2,2,3,4,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>id<\/th>\n      <th>taxon_name<\/th>\n      <th>date_obs<\/th>\n      <th>location<\/th>\n      <th>latitude<\/th>\n      <th>longitude<\/th>\n      <th>n_photos<\/th>\n      <th>batch<\/th>\n      <th>media_name_1<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[1,5,6,7,8]},{"orderable":false,"targets":0},{"name":" ","targets":0},{"name":"id","targets":1},{"name":"taxon_name","targets":2},{"name":"date_obs","targets":3},{"name":"location","targets":4},{"name":"latitude","targets":5},{"name":"longitude","targets":6},{"name":"n_photos","targets":7},{"name":"batch","targets":8},{"name":"media_name_1","targets":9}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+</section>
+<section id="batch-summary" class="level2">
+<h2 class="anchored" data-anchor-id="batch-summary">Batch summary</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>inat_table <span class="sc">|&gt;</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(batch, <span class="at">name =</span> <span class="st">"n_observations"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">caption =</span> <span class="fu">paste</span>(<span class="st">"Batch summary —"</span>, batch_size, <span class="st">"observations per batch"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Batch summary — 50 observations per batch</caption>
+<thead>
+<tr class="header">
+<th style="text-align: right;">batch</th>
+<th style="text-align: right;">n_observations</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">18</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">19</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">21</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">22</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">23</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">25</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">26</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">27</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">28</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">29</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">31</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">33</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">34</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">35</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">36</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">37</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">38</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">39</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">41</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">42</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">43</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">44</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">46</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">47</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">49</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">51</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">52</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">53</td>
+<td style="text-align: right;">42</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section id="write-batch-csv-files" class="level2">
+<h2 class="anchored" data-anchor-id="write-batch-csv-files">Write batch CSV files</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>template_cols <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"id"</span>, <span class="st">"taxon_name"</span>, <span class="st">"date_obs"</span>, <span class="st">"time_zone"</span>, <span class="st">"description"</span>, <span class="st">"tag_list"</span>,</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"latitude"</span>, <span class="st">"longitude"</span>, <span class="st">"location"</span>, <span class="st">"pos_acc"</span>, <span class="st">"geoprivacy"</span>,</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"field_id1"</span>, <span class="st">"field_value1"</span>, <span class="st">"field_id2"</span>, <span class="st">"field_value2"</span>,</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"media_name_1"</span>, <span class="st">"media_name_2"</span>, <span class="st">"media_name_3"</span>, <span class="st">"media_name_4"</span>, <span class="st">"media_name_5"</span>,</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"media_name_6"</span>, <span class="st">"media_name_7"</span>, <span class="st">"media_name_8"</span>, <span class="st">"media_name_9"</span>, <span class="st">"media_name_10"</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>newfile_ready <span class="ot">&lt;-</span> <span class="fu">any</span>(<span class="sc">!</span><span class="fu">is.na</span>(species_photos<span class="sc">$</span>newfile))</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>fields_ready <span class="ot">&lt;-</span> <span class="sc">!</span><span class="fu">is.na</span>(inat_field_id_siteplot) <span class="sc">&amp;&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(inat_field_id_taxon)</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span>newfile_ready <span class="sc">||</span> <span class="sc">!</span>fields_ready) {</span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>  missing <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span>newfile_ready) <span class="st">"newfile (run the photo-copy chunk in botanist_photo_processing.qmd)"</span>,</span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">is.na</span>(inat_field_id_siteplot)) <span class="st">"inat_field_id_siteplot"</span>,</span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">is.na</span>(inat_field_id_taxon)) <span class="st">"inat_field_id_taxon"</span></span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(</span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Batch CSVs were not written. Still needed: "</span>,</span>
+<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(missing, <span class="at">collapse =</span> <span class="st">"; "</span>),</span>
+<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a>    <span class="st">"."</span></span>
+<span id="cb27-22"><a href="#cb27-22" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb27-23"><a href="#cb27-23" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb27-24"><a href="#cb27-24" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">dir.exists</span>(batch_dir)) <span class="fu">dir.create</span>(batch_dir, <span class="at">recursive =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb27-25"><a href="#cb27-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-26"><a href="#cb27-26" aria-hidden="true" tabindex="-1"></a>  <span class="co"># A blank media_name_1 makes the uploader abort the row. "none" is the</span></span>
+<span id="cb27-27"><a href="#cb27-27" aria-hidden="true" tabindex="-1"></a>  <span class="co"># documented token for an observation that has no photo.</span></span>
+<span id="cb27-28"><a href="#cb27-28" aria-hidden="true" tabindex="-1"></a>  batch_table <span class="ot">&lt;-</span> inat_table <span class="sc">|&gt;</span></span>
+<span id="cb27-29"><a href="#cb27-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">media_name_1 =</span> <span class="fu">if_else</span>(<span class="fu">is.na</span>(media_name_1), <span class="st">"none"</span>, media_name_1))</span>
+<span id="cb27-30"><a href="#cb27-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-31"><a href="#cb27-31" aria-hidden="true" tabindex="-1"></a>  batch_ids <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">unique</span>(batch_table<span class="sc">$</span>batch))</span>
+<span id="cb27-32"><a href="#cb27-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">walk</span>(batch_ids, <span class="cf">function</span>(b) {</span>
+<span id="cb27-33"><a href="#cb27-33" aria-hidden="true" tabindex="-1"></a>    batch_file <span class="ot">&lt;-</span> <span class="fu">file.path</span>(batch_dir, <span class="fu">paste0</span>(<span class="st">"batch_"</span>, <span class="fu">sprintf</span>(<span class="st">"%02d"</span>, b), <span class="st">".csv"</span>))</span>
+<span id="cb27-34"><a href="#cb27-34" aria-hidden="true" tabindex="-1"></a>    batch_table <span class="sc">|&gt;</span></span>
+<span id="cb27-35"><a href="#cb27-35" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(batch <span class="sc">==</span> b) <span class="sc">|&gt;</span></span>
+<span id="cb27-36"><a href="#cb27-36" aria-hidden="true" tabindex="-1"></a>      <span class="fu">select</span>(<span class="fu">all_of</span>(template_cols)) <span class="sc">|&gt;</span></span>
+<span id="cb27-37"><a href="#cb27-37" aria-hidden="true" tabindex="-1"></a>      <span class="fu">write_csv</span>(batch_file, <span class="at">na =</span> <span class="st">""</span>)</span>
+<span id="cb27-38"><a href="#cb27-38" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"Wrote:"</span>, batch_file, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb27-39"><a href="#cb27-39" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb27-40"><a href="#cb27-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-41"><a href="#cb27-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">All batches written to:"</span>, batch_dir, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb27-42"><a href="#cb27-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Total batches:"</span>, <span class="fu">length</span>(batch_ids), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb27-43"><a href="#cb27-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Total observations:"</span>, <span class="fu">nrow</span>(batch_table), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb27-44"><a href="#cb27-44" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+<section id="next-steps" class="level2">
+<h2 class="anchored" data-anchor-id="next-steps">Next steps</h2>
+<p>The bulk uploader is the Windows program <code>workflow/dist/iNat_bulk_uploader.exe</code>.</p>
+<ol type="1">
+<li>Create the two observation fields on iNaturalist and set <code>inat_field_id_siteplot</code> and <code>inat_field_id_taxon</code> to the numeric ids from their field URLs.</li>
+<li>Run the photo-copy chunk in <code>botanist_photo_processing.qmd</code>, then re-run this notebook so <code>newfile</code> is present and the batch CSVs are written.</li>
+<li>Copy the JPEGs named in a batch into one folder. <code>media_name_*</code> is a basename, and the program looks only in the folder you select.</li>
+<li>Run the exe, choose <code>batch_01.csv</code> and that folder, and submit. Copy <code>log.csv</code> out of the installation folder before the next batch; the program replaces it on every run.</li>
+<li>After every batch has uploaded, export the observations to <code>data/inat_export.csv</code> and re-run the section below.</li>
+</ol>
+<p>The program cannot add observations to an iNat project. <code>ABORT</code> in the <code>id</code> column stops a run. <code>config.ini</code> beside the exe still holds another person’s paths; choose the CSV and photo folder in the program rather than editing that file.</p>
+</section>
+<section id="write-inatid-back-to-the-species-tables" class="level2">
+<h2 class="anchored" data-anchor-id="write-inatid-back-to-the-species-tables">Write iNatID back to the species tables</h2>
+<p><code>iNatID</code> is the observation id in <code>https://www.inaturalist.org/observations/&lt;id&gt;</code>, which is also the <code>id</code> parameter on an observation search. This section runs only when <code>data/inat_export.csv</code> is present. It writes new files and does not modify the v20241104 species tables.</p>
+<p>A binomial observation is attached to every quadrat row of that species at that plot. Genus-only observations and binomials that are not in the survey have no matching row, so they do not fill <code>iNatID</code>. If more than one observation matches the same species row, the smallest id is kept and the extras are reported.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">file.exists</span>(inat_export_file)) {</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"No iNat export at "</span>, inat_export_file, <span class="st">". "</span>,</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Upload the batches, export the observations, and re-run this section."</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>  inat_export <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(inat_export_file, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># iNat prefixes observation-field columns as "field:&lt;name&gt;".</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>  field_column <span class="ot">&lt;-</span> <span class="cf">function</span>(nm, field_name) {</span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>    candidates <span class="ot">&lt;-</span> <span class="fu">c</span>(field_name, <span class="fu">paste0</span>(<span class="st">"field:"</span>, field_name))</span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>    hit <span class="ot">&lt;-</span> nm[<span class="fu">str_to_lower</span>(nm) <span class="sc">%in%</span> <span class="fu">str_to_lower</span>(candidates)]</span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">length</span>(hit) <span class="sc">!=</span> <span class="dv">1</span>) {</span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>      <span class="fu">stop</span>(</span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Expected one column for observation field '"</span>, field_name, <span class="st">"'. "</span>,</span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Found: "</span>, <span class="cf">if</span> (<span class="fu">length</span>(hit) <span class="sc">==</span> <span class="dv">0</span>) <span class="st">"none"</span> <span class="cf">else</span> <span class="fu">paste</span>(hit, <span class="at">collapse =</span> <span class="st">", "</span>),</span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>        <span class="st">". Export columns: "</span>, <span class="fu">paste</span>(nm, <span class="at">collapse =</span> <span class="st">", "</span>)</span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a>    hit</span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="st">"id"</span> <span class="sc">%in%</span> <span class="fu">names</span>(inat_export)) {</span>
+<span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">"inat export has no 'id' column. Columns: "</span>,</span>
+<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a>         <span class="fu">paste</span>(<span class="fu">names</span>(inat_export), <span class="at">collapse =</span> <span class="st">", "</span>))</span>
+<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb28-27"><a href="#cb28-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-28"><a href="#cb28-28" aria-hidden="true" tabindex="-1"></a>  site_col  <span class="ot">&lt;-</span> <span class="fu">field_column</span>(<span class="fu">names</span>(inat_export), inat_field_name_siteplot)</span>
+<span id="cb28-29"><a href="#cb28-29" aria-hidden="true" tabindex="-1"></a>  taxon_col <span class="ot">&lt;-</span> <span class="fu">field_column</span>(<span class="fu">names</span>(inat_export), inat_field_name_taxon)</span>
+<span id="cb28-30"><a href="#cb28-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-31"><a href="#cb28-31" aria-hidden="true" tabindex="-1"></a>  links <span class="ot">&lt;-</span> inat_export <span class="sc">|&gt;</span></span>
+<span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">transmute</span>(</span>
+<span id="cb28-33"><a href="#cb28-33" aria-hidden="true" tabindex="-1"></a>      <span class="at">iNatID =</span> <span class="fu">as.integer</span>(id),</span>
+<span id="cb28-34"><a href="#cb28-34" aria-hidden="true" tabindex="-1"></a>      <span class="at">SiteCode_Plot =</span> <span class="fu">str_squish</span>(.data[[site_col]]),</span>
+<span id="cb28-35"><a href="#cb28-35" aria-hidden="true" tabindex="-1"></a>      <span class="at">taxon_uploaded =</span> <span class="fu">str_squish</span>(.data[[taxon_col]]),</span>
+<span id="cb28-36"><a href="#cb28-36" aria-hidden="true" tabindex="-1"></a>      <span class="at">combo_key =</span> <span class="fu">str_to_lower</span>(taxon_uploaded)</span>
+<span id="cb28-37"><a href="#cb28-37" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">|&gt;</span></span>
+<span id="cb28-38"><a href="#cb28-38" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(iNatID), SiteCode_Plot <span class="sc">!=</span> <span class="st">""</span>, taxon_uploaded <span class="sc">!=</span> <span class="st">""</span>)</span>
+<span id="cb28-39"><a href="#cb28-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-40"><a href="#cb28-40" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Only a binomial that exists on a survey row can receive an iNatID.</span></span>
+<span id="cb28-41"><a href="#cb28-41" aria-hidden="true" tabindex="-1"></a>  <span class="co"># A genus-only value does not equal any Genus_Species_combo.</span></span>
+<span id="cb28-42"><a href="#cb28-42" aria-hidden="true" tabindex="-1"></a>  survey_keys <span class="ot">&lt;-</span> veg_plot_species <span class="sc">|&gt;</span></span>
+<span id="cb28-43"><a href="#cb28-43" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>(SiteCode_Plot, Genus_Species_combo) <span class="sc">|&gt;</span></span>
+<span id="cb28-44"><a href="#cb28-44" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">combo_key =</span> <span class="fu">str_to_lower</span>(<span class="fu">str_squish</span>(Genus_Species_combo))) <span class="sc">|&gt;</span></span>
+<span id="cb28-45"><a href="#cb28-45" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(SiteCode_Plot, combo_key)</span>
+<span id="cb28-46"><a href="#cb28-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-47"><a href="#cb28-47" aria-hidden="true" tabindex="-1"></a>  matched <span class="ot">&lt;-</span> links <span class="sc">|&gt;</span></span>
+<span id="cb28-48"><a href="#cb28-48" aria-hidden="true" tabindex="-1"></a>    <span class="fu">inner_join</span>(survey_keys, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"SiteCode_Plot"</span>, <span class="st">"combo_key"</span>))</span>
+<span id="cb28-49"><a href="#cb28-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-50"><a href="#cb28-50" aria-hidden="true" tabindex="-1"></a>  extra <span class="ot">&lt;-</span> matched <span class="sc">|&gt;</span></span>
+<span id="cb28-51"><a href="#cb28-51" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(SiteCode_Plot, combo_key) <span class="sc">|&gt;</span></span>
+<span id="cb28-52"><a href="#cb28-52" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="fu">n</span>() <span class="sc">&gt;</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
+<span id="cb28-53"><a href="#cb28-53" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(iNatID) <span class="sc">|&gt;</span></span>
+<span id="cb28-54"><a href="#cb28-54" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">kept =</span> iNatID <span class="sc">==</span> <span class="fu">min</span>(iNatID)) <span class="sc">|&gt;</span></span>
+<span id="cb28-55"><a href="#cb28-55" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ungroup</span>()</span>
+<span id="cb28-56"><a href="#cb28-56" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">nrow</span>(extra) <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb28-57"><a href="#cb28-57" aria-hidden="true" tabindex="-1"></a>    <span class="fu">warning</span>(</span>
+<span id="cb28-58"><a href="#cb28-58" aria-hidden="true" tabindex="-1"></a>      <span class="fu">n_distinct</span>(<span class="fu">paste</span>(extra<span class="sc">$</span>SiteCode_Plot, extra<span class="sc">$</span>combo_key)),</span>
+<span id="cb28-59"><a href="#cb28-59" aria-hidden="true" tabindex="-1"></a>      <span class="st">" plot × species keys matched more than one iNat observation. "</span>,</span>
+<span id="cb28-60"><a href="#cb28-60" aria-hidden="true" tabindex="-1"></a>      <span class="st">"The smallest iNatID was kept."</span></span>
+<span id="cb28-61"><a href="#cb28-61" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb28-62"><a href="#cb28-62" aria-hidden="true" tabindex="-1"></a>    extra <span class="sc">|&gt;</span></span>
+<span id="cb28-63"><a href="#cb28-63" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(<span class="sc">!</span>kept) <span class="sc">|&gt;</span></span>
+<span id="cb28-64"><a href="#cb28-64" aria-hidden="true" tabindex="-1"></a>      <span class="fu">select</span>(SiteCode_Plot, taxon_uploaded, iNatID) <span class="sc">|&gt;</span></span>
+<span id="cb28-65"><a href="#cb28-65" aria-hidden="true" tabindex="-1"></a>      <span class="fu">print</span>(<span class="at">n =</span> <span class="cn">Inf</span>)</span>
+<span id="cb28-66"><a href="#cb28-66" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb28-67"><a href="#cb28-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-68"><a href="#cb28-68" aria-hidden="true" tabindex="-1"></a>  links_one <span class="ot">&lt;-</span> matched <span class="sc">|&gt;</span></span>
+<span id="cb28-69"><a href="#cb28-69" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(SiteCode_Plot, combo_key) <span class="sc">|&gt;</span></span>
+<span id="cb28-70"><a href="#cb28-70" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">iNatID =</span> <span class="fu">min</span>(iNatID), <span class="at">.groups =</span> <span class="st">"drop"</span>)</span>
+<span id="cb28-71"><a href="#cb28-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-72"><a href="#cb28-72" aria-hidden="true" tabindex="-1"></a>  attach_inat <span class="ot">&lt;-</span> <span class="cf">function</span>(species_file, out_file) {</span>
+<span id="cb28-73"><a href="#cb28-73" aria-hidden="true" tabindex="-1"></a>    species <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(species_file, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb28-74"><a href="#cb28-74" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(<span class="at">combo_key =</span> <span class="fu">str_to_lower</span>(<span class="fu">str_squish</span>(Genus_Species_combo))) <span class="sc">|&gt;</span></span>
+<span id="cb28-75"><a href="#cb28-75" aria-hidden="true" tabindex="-1"></a>      <span class="fu">left_join</span>(links_one, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"SiteCode_Plot"</span>, <span class="st">"combo_key"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb28-76"><a href="#cb28-76" aria-hidden="true" tabindex="-1"></a>      <span class="fu">select</span>(<span class="sc">-</span>combo_key)</span>
+<span id="cb28-77"><a href="#cb28-77" aria-hidden="true" tabindex="-1"></a>    <span class="fu">write_csv</span>(species, out_file)</span>
+<span id="cb28-78"><a href="#cb28-78" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(</span>
+<span id="cb28-79"><a href="#cb28-79" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Wrote "</span>, out_file, <span class="st">" with "</span>, <span class="fu">sum</span>(<span class="sc">!</span><span class="fu">is.na</span>(species<span class="sc">$</span>iNatID)),</span>
+<span id="cb28-80"><a href="#cb28-80" aria-hidden="true" tabindex="-1"></a>      <span class="st">" iNatID values.</span><span class="sc">\n</span><span class="st">"</span>, <span class="at">sep =</span> <span class="st">""</span></span>
+<span id="cb28-81"><a href="#cb28-81" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb28-82"><a href="#cb28-82" aria-hidden="true" tabindex="-1"></a>    <span class="fu">invisible</span>(species)</span>
+<span id="cb28-83"><a href="#cb28-83" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb28-84"><a href="#cb28-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-85"><a href="#cb28-85" aria-hidden="true" tabindex="-1"></a>  <span class="fu">attach_inat</span>(plot_species_file, plot_inat_file)</span>
+<span id="cb28-86"><a href="#cb28-86" aria-hidden="true" tabindex="-1"></a>  <span class="fu">attach_inat</span>(quad_species_file, quad_inat_file)</span>
+<span id="cb28-87"><a href="#cb28-87" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/BioSCape-io\.github\.io\/BioSCape-terrestrial\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
