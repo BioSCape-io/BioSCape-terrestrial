@@ -18,11 +18,27 @@ execute:
 
 This script reads the cleaned photo dataset produced by `botanist_photo_processing.qmd` and prepares batch CSV files for the iNaturalist bulk uploader (`workflow/dist/iNat_bulk_uploader.exe`; see `workflow/dist/readme.txt`).
 
-Each output row is one corrected species at one plot. Photos of that species at that plot, including different raw spellings and rarefaction species photos, are collapsed into up to 10 `media_name_*` columns. Plot photos (cardinal shots, overviews, rarefaction markers, datasheets) are not uploaded. Observations are split into batches of 50.
+Each output row is one corrected species at one plot. Photos of that species at that plot, including different raw spellings and rarefaction species photos, are collapsed into up to 10 `media_name_*` columns. Kept rows have `photo_type == "species"` and `match_type` of `exact`, `fuzzy`, `spd_fill`, or `genus_only`. Plot photos (cardinal shots, overviews, rarefaction markers, datasheets), blank names, `no_match`, and `excluded` rows are not uploaded. Observations are split into batches of 50.
 
-The batch CSVs are written only after two things are true: `newfile` is populated by the photo-copy chunk, and both numeric observation-field ids below are set. Until then the notebook still builds the observation table so it can be reviewed.
+The batch CSVs are written only after two things are true: `newfile` is populated by the photo-copy chunk, and both numeric observation-field ids below are set. Until then the notebook still builds the observation table so it can be reviewed. `field_id*` is the number in `https://www.inaturalist.org/observation_fields/<id>`. The uploader readme documents only these two field pairs.
 
-After upload, the last section reads `data/inat_export.csv` and writes `iNatID` onto copies of the plot and quadrat species tables. The v20241104 files are left unchanged. If the export is not there yet, that section reports so and stops.
+| iNat field | Source |
+|---|---|
+| `id` | Sequential integer. The uploader prints this as each row starts. It is not the iNaturalist observation id. |
+| `taxon_name` | Corrected binomial, or the corrected genus alone for `genus_only` |
+| `date_obs` | Earliest photo date, `DD/MM/YYYY` |
+| `time_zone` | `Africa/Johannesburg` |
+| `description` | `SiteCode_Plot`, `SiteCode`, `Plot`, taxon, botanist, and photo notes |
+| `tag_list` | `BioSCape` |
+| `latitude`, `longitude` | Mean GPS of the photos in the group |
+| `location` | `SiteCode_Plot` |
+| `pos_acc` | Maximum `gps_position_error`, in meters |
+| `geoprivacy` | `open` |
+| `field_id1`, `field_value1` | Numeric id of `BioSCape SiteCode_Plot`, and the `SiteCode_Plot` value |
+| `field_id2`, `field_value2` | Numeric id of `BioSCape Genus_Species_combo`, and the uploaded taxon |
+| `media_name_1`–`media_name_10` | `basename(newfile)`, at most 10. `none` when that observation has no photo |
+
+After upload, the last section reads `data/inat_export.csv`. `iNatID` is the export `id`: the number in `https://www.inaturalist.org/observations/<id>`, also usable as `https://www.inaturalist.org/observations?id=<id>`. It is joined on `SiteCode_Plot` and the uploaded taxon, ignoring case, and written to `data/bioscape_veg_plot_species_v20241104_inat.csv` and `data/bioscape_veg_quadrat_species_v20241104_inat.csv`. The v20241104 files are not modified. The same id is copied onto every quadrat row of that species at that plot. Genus-only observations and binomials that are not in the survey are uploaded, and they do not fill `iNatID`. If two observations match one species row, the smallest id is kept. If the export is not there yet, that section reports so and stops.
 
 **Prerequisites:**
 

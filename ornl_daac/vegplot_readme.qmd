@@ -1,11 +1,11 @@
 ---
 title: "BioSCape Vegetation Plots, Cape Floristic Region, South Africa, 2023"
-author: "Jasper Slingsby, Ross Turner, Douglas Euston-Brown, Steven Molteno, Stuart Hall, Paul Emms,  Henry. A. Frye, Phillip. A. Townsend, Anabelle Cardoso, Erin Hestir, Adam M. Wilson"
+author: "Jasper Slingsby, Ross Turner, Douglas Euston-Brown, Greg Nicolson, Steven Molteno, Stuart Hall, Paul Emms,  Henry. A. Frye, Phillip. A. Townsend, Anabelle Cardoso, Erin Hestir, Adam M. Wilson"
 date: today
 format:
   gfm:
     output-file: README.md
-    toc: true
+    toc: false
 execute:
   echo: false
   warning: false
@@ -813,9 +813,16 @@ github_files <- c(
 )
 stopifnot(all(file.exists(github_files)))
 
+# pb_releases() caches its result for the R session. A release created
+# earlier in the session stays invisible until that cache is cleared.
+memoise::forget(piggyback::pb_releases)
+memoise::forget(piggyback::pb_info)
+
 if (!github_tag %in% pb_releases(repo = github_repo)$tag_name) {
- 
-} pb_new_release(repo = github_repo, tag = github_tag)
+  pb_new_release(repo = github_repo, tag = github_tag)
+  memoise::forget(piggyback::pb_releases)
+  memoise::forget(piggyback::pb_info)
+}
 
 pb_upload(
   file = github_files[1],

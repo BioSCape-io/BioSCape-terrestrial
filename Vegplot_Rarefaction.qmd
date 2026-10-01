@@ -36,7 +36,7 @@ library(leaflet)
 library(cowplot)
 library(DT)
 # Downloading Data
-photo_all_file <- paste0("data/", "vegphoto_all_v20250228", ".csv")
+photo_all_file <- paste0("data/", "vegphoto_all_v20260923", ".csv")
 #pb_download(file = "vegphoto_all_v20250228.csv", dest = "data", tag = "vegphoto_v20250228")
 data <- read_csv(photo_all_file) %>% 
   st_as_sf(crs = 4326, coords = c("gps_longitude", "gps_latitude"))
@@ -44,7 +44,7 @@ data <- read_csv(photo_all_file) %>%
 
 # Download spatial data
 #pb_download(file="BioScapeSpatialProducts2024_11_12.zip",tag="v20241112",dest = "data")
-unzip("data/BioScapeSpatialProducts2024_11_12.zip",exdir = "data/spatial")
+#unzip("data/BioScapeSpatialProducts2024_11_12.zip",exdir = "data/spatial")
 
 
 plots=read_sf("data/spatial/BioSCapeVegCenters2024_11_12.shp")
@@ -69,7 +69,7 @@ vdatas=vdata %>%
   summarize(n_species=n_distinct(Genus_Species_combo),
             n_genus=n_distinct(AcceptedGenus),
             total_cover=sum(PercentCoverAlive))# %>% 
-#  left_join(pdata,by="BScpPID")
+#  left_join(pdata,by="plot")
 
 
 ```
@@ -78,20 +78,20 @@ vdatas=vdata %>%
 # Transforming Rarefaction Data
 rdata <- data %>%
   filter(is.na(rarefaction_duplicate), rarefaction_photo == 1) %>%
-  group_by(BScpPID, rarefaction_replicate) %>%
+  group_by(plot, rarefaction_replicate) %>%
   arrange(datetime, .by_group = TRUE) %>%
   mutate(
     rarefaction_time = datetime - min(datetime),
     rarefaction_min = as.numeric(rarefaction_time) / 60,
     count = row_number() - 1,
-    plot_number_replicate = paste(BScpPID, sep = "."),
+    plot_number_replicate = paste(plot, sep = "."),
   ) %>%
-  select(BScpPID, plot_number_replicate, description, genus, species, datetime, time, 
+  select(plot, plot_number_replicate, description, genus, species, datetime, time, 
          rarefaction_time, rarefaction_min, rarefaction_replicate, count, botanist)
 
 # create plot-level summaries
 rdatas <- rdata %>%
-  group_by(BScpPID) %>%
+  group_by(plot) %>%
   summarize(
     datetime_start = min(datetime, na.rm = TRUE),
     rarefaction_n_5min = if_else(any(rarefaction_min <= 5), max(count[rarefaction_min <= 5], na.rm = TRUE), NA_real_),
@@ -99,7 +99,7 @@ rdatas <- rdata %>%
     rarefaction_n_max = max(count, na.rm = TRUE),
     rarefaction_replicates = n_distinct(rarefaction_replicate, na.rm = TRUE)
   ) %>%
-  left_join(vdatas, by = c("BScpPID" = "Plot"))
+  left_join(vdatas, by = c("plot" = "Plot"))
 ```
 
 # Plot and Photo locations
@@ -123,8 +123,8 @@ leaflet() %>%
               popup = ~paste("Region: ",homogeneous$Region,
                              "<br>Plot: ",homogeneous$BScpPID),group = "homogeneous") %>%
   addCircleMarkers(data=data,
-                   label = ~data$BScpPID,
-                   popup=~paste("Plot:",data$BScpPID,"<br>Photo Description:",data$description,"<br>Genus:",data$genus,"<br>Species:",data$species),
+                   label = ~data$plot,
+                   popup=~paste("Plot:",data$plot,"<br>Photo Description:",data$description,"<br>Genus:",data$genus,"<br>Species:",data$species),
 #                                "<br> <img src='data/photo_out/",photo_all3$thumbfile , "'   #style='width:150px;height:auto;'>"),
                    color="red",radius=1,group = "photos") %>%
   addCircleMarkers(data=plots,lng=st_coordinates(plots)[,"X"], lat=st_coordinates(plots)[,"Y"],
@@ -149,12 +149,12 @@ all_bins <- expand_grid(
 
 data_binned <- data %>%
   filter(rarefaction_photo == 1) %>%
-  select(BScpPID, rarefaction_replicate, datetime) %>%
-  group_by(BScpPID, rarefaction_replicate) %>%
+  select(plot, rarefaction_replicate, datetime) %>%
+  group_by(plot, rarefaction_replicate) %>%
   mutate(
     time = as.numeric(ceiling_date(datetime, "30 seconds") - 
                         ceiling_date(min(datetime), "30 seconds")),
-    plot_number_replicate = paste(BScpPID, rarefaction_replicate, sep = "."),
+    plot_number_replicate = paste(plot, rarefaction_replicate, sep = "."),
     n = 1
   ) %>%
   right_join(all_bins) %>%
@@ -185,10 +185,10 @@ $S_{\text{obs}}$ \~ Number of species observed after n units of sampling $S_max$
 
 ```{r}
 d1 <- st_set_geometry(rdata, NULL) %>%
-#  group_by(BScpPID) %>%
+#  group_by(plot) %>%
 #  filter(n_distinct(rarefaction_replicate) == 1) %>%
 #  ungroup() %>%
-  group_by(BScpPID)
+  group_by(plot)
 
 # Define a function to fit the model
 fit_nls <- function(data) {
@@ -226,7 +226,7 @@ extract_confint <- function(model, param) {
 
 # Fit models for each site and extract parameters & confidence intervals
 results <- d1 %>%
-  group_by(BScpPID) %>%
+  group_by(plot) %>%
   nest() %>%
   mutate(
     model = map(data, fit_nls),
@@ -246,7 +246,7 @@ results <- d1 %>%
 
 # Fit models for each site
 #models <- d1 %>%
-#  group_by(BScpPID) %>%
+#  group_by(plot) %>%
 #  summarize(
 #    model = list(fit_nls(cur_data())),
 #    .groups = "drop"
@@ -262,7 +262,7 @@ results <- d1 %>%
 
 # Add predictions to the dataset
 predicted_data <- d1 %>%
-  left_join(results, by = "BScpPID") %>%
+  left_join(results, by = "plot") %>%
   mutate(
     predicted_richness = map2_dbl(
       rarefaction_min, model,
@@ -278,12 +278,12 @@ The rarefaction data are shared in two formats: photo-level data and plot-level 
 ```{r}
 # Assemble and organize photo-level data
 vegphoto_rarefied_photo <- rdata %>%
-  select(BScpPID, description, genus, species, datetime, time,
+  select(plot, description, genus, species, datetime, time,
          rarefaction_min, rarefaction_replicate, count, botanist)
 # Assemble and simplify plot data 
 vegphoto_rarefied_plot <- rdatas %>%
-  left_join(select(results,BScpPID,Smax,B,Smax_Lower,Smax_Upper,B_Lower,B_Upper), by = "BScpPID") %>%
-  select(BScpPID, datetime_start, total_cover, 
+  left_join(select(results,plot,Smax,B,Smax_Lower,Smax_Upper,B_Lower,B_Upper), by = "plot") %>%
+  select(plot, datetime_start, total_cover, 
          rarefaction_n_5min, rarefaction_n_10min, rarefaction_n_max, rarefaction_replicates,
          Smax, B, Smax_Lower,Smax_Upper,B_Lower,B_Upper)
 
@@ -292,7 +292,7 @@ vegphoto_rarefied_plot <- rdatas %>%
 
 ### vegphoto_rarefied_photo - Column descriptions
 
--   BScpPID - plot id aligned with spatial vegplot data
+-   plot - plot id aligned with spatial vegplot data
 -   description - original caption entered by the botanists in the field
 -   genus - genus of the observed species (when available)
 -   species - species of the observed species (when available)
@@ -314,7 +314,7 @@ vegphoto_rarefied_photo |>
 
 ### vegphoto_rarefied_plot - Column descriptions
 
--   BScpPID - plot id aligned with spatial vegplot data
+-   plot - plot id aligned with spatial vegplot data
 -   datetime_start - date and time of the first photo in the rarefaction sequence
 -   rarefaction_n_5min - observed cumulative species richness after 5 minutes of sampling
 -   rarefaction_n_10min - observed cumulative species richness after 10 minutes of sampling
@@ -384,7 +384,7 @@ dataTable1 <- list(
   physical = list(objectName = "vegphoto_rarefied_photo.csv"),
 attributeList <- EML::set_attributes(
   attributes = bind_rows(
-    data.frame(attributeName="BScpPID", attributeDefinition="Plot ID", unit= NA, 
+    data.frame(attributeName="plot", attributeDefinition="Plot ID", unit= NA, 
                formatString = "character", measurementScale = "nominal",domain="textDomain"),
     data.frame(attributeName="description",attributeDefinition= "Photo caption as entered in the field", unit= NA, 
                formatString = "character", measurementScale = "nominal",domain="textDomain"),
@@ -417,7 +417,7 @@ dataTable2 <- list(
   physical = list(objectName = "vegphoto_rarefied_plot.csv"),
   attributeList = EML::set_attributes(bind_rows(
     data.frame(
-      attributeName = "BScpPID",
+      attributeName = "plot",
       attributeDefinition = "Plot ID",
       formatString = "character",
       measurementScale = "nominal",
@@ -556,8 +556,8 @@ y_max <- max(c(rdata$count[rdata$rarefaction_min <= 10],
 y_lims <- c(0, y_max)
 
 p1 <- rdata %>%
-  left_join(select(st_set_geometry(rdatas,NULL), BScpPID, rarefaction_n_10min)) %>% 
-  filter(!is.na(BScpPID) & rarefaction_min <= 10) %>%
+  left_join(select(st_set_geometry(rdatas,NULL), plot, rarefaction_n_10min)) %>% 
+  filter(!is.na(plot) & rarefaction_min <= 10) %>%
   ggplot(aes(x = rarefaction_min, y = count, group = plot_number_replicate, color = rarefaction_n_10min)) +
   geom_line(alpha=0.7) +
   labs(y = "Rarefaction Photos (Observed Unique Species)", x = "Search Minutes")+
@@ -591,19 +591,19 @@ predicted_data %>%
   filter(botanist=="")
 
 predicted_data %>%
-  filter(!is.na(BScpPID) & rarefaction_min < 10, BScpPID%in%choose_plots) %>%
+  filter(!is.na(plot) & rarefaction_min < 10, plot%in%choose_plots) %>%
   ggplot(aes(x = rarefaction_min, y = count, group = plot_number_replicate)) +
   geom_rect(aes(xmin=-Inf,xmax=Inf,ymin = Smax_Lower,ymax=Smax_Upper), inherit.aes = F,
-            data = filter(results,BScpPID%in%choose_plots), linetype = "dashed",fill="darkred",alpha=.2) +
-  geom_hline(aes(yintercept = Smax), data = filter(results,BScpPID%in%choose_plots), linetype = "dashed",col="red") +
+            data = filter(results,plot%in%choose_plots), linetype = "dashed",fill="darkred",alpha=.2) +
+  geom_hline(aes(yintercept = Smax), data = filter(results,plot%in%choose_plots), linetype = "dashed",col="red") +
   geom_rect(aes(ymin=-Inf,ymax=Inf,xmin = B_Lower,xmax=B_Upper), inherit.aes = F,
-            data = filter(results,BScpPID%in%choose_plots), linetype = "dashed",fill="darkred",alpha=.2) +
-  geom_vline(aes(xintercept = B), data = filter(results,BScpPID%in%choose_plots), linetype = "dotted",col="red") +
+            data = filter(results,plot%in%choose_plots), linetype = "dashed",fill="darkred",alpha=.2) +
+  geom_vline(aes(xintercept = B), data = filter(results,plot%in%choose_plots), linetype = "dotted",col="red") +
   geom_point(col="black") +
   geom_line(aes(y=predicted_richness),col="red") +
-  geom_hline(aes(yintercept = rarefaction_n_10min), data = filter(rdatas,BScpPID%in%choose_plots), linetype = "dashed") +
-  geom_hline(aes(yintercept = rarefaction_n_5min), data = filter(rdatas,BScpPID%in%choose_plots), linetype = "dashed") +
-  facet_wrap(~BScpPID,nrow = 1) +
+  geom_hline(aes(yintercept = rarefaction_n_10min), data = filter(rdatas,plot%in%choose_plots), linetype = "dashed") +
+  geom_hline(aes(yintercept = rarefaction_n_5min), data = filter(rdatas,plot%in%choose_plots), linetype = "dashed") +
+  facet_wrap(~plot,nrow = 1) +
   labs(y = "Rarefaction Photos", x = "Minutes") +
   scale_x_continuous(lim = c(0, 10), breaks = c(0, 5, 10))+
   scale_y_continuous(lim = c(0, 100), breaks = c(0, 20, 40, 60, 80, 100))+
@@ -615,7 +615,7 @@ predicted_data %>%
 
 ```{r, fig.height=25,fig.width=20}
 predicted_data %>%
-  filter(!is.na(BScpPID) & rarefaction_min < 10) %>% #,BScpPID%in%c("T002","T083","T184")) %>%
+  filter(!is.na(plot) & rarefaction_min < 10) %>% #,plot%in%c("T002","T083","T184")) %>%
   ggplot(aes(x = rarefaction_min, y = count, group = plot_number_replicate)) +
   geom_rect(aes(xmin=-Inf,xmax=Inf,ymin = Smax_Lower,ymax=Smax_Upper), inherit.aes = F,
             data = results, linetype = "dashed",fill="darkred",alpha=.2) +
@@ -627,7 +627,7 @@ predicted_data %>%
   geom_line(aes(y=predicted_richness),col="red") +
   geom_hline(aes(yintercept = rarefaction_n_10min), data = rdatas, linetype = "dashed") +
   geom_hline(aes(yintercept = rarefaction_n_5min), data = rdatas, linetype = "dashed") +
-  facet_wrap(~BScpPID,nrow = 5) +
+  facet_wrap(~plot,nrow = 5) +
   labs(y = "Rarefaction Photos", x = "Minutes") +
   scale_x_continuous(lim = c(0, 10), breaks = c(0, 5, 10))+
   scale_y_continuous(lim = c(0, 100), breaks = c(0, 20, 40, 60, 80, 100))+
@@ -642,7 +642,7 @@ rdatas |>
 ggplot(aes(x = n_species, y = rarefaction_n_10min)) +
   geom_point()+#aes(color=rarefaction_replicates>1))+
   geom_smooth(method = "lm") +
-#  geom_text(aes(label = BScpPID), nudge_x = 0.5, nudge_y = 0.5) +
+#  geom_text(aes(label = plot), nudge_x = 0.5, nudge_y = 0.5) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
   labs(x = "# Species in Cover Data", y = "# Photos in Rarefaction Data")+
   coord_cartesian(ylim=c(0,75))
@@ -656,7 +656,7 @@ rdatas |>
 ggplot(aes(x = total_cover, y = rarefaction_n_10min)) +
   geom_point() +
   geom_smooth(method = "lm") +
-  geom_text(aes(label = BScpPID), nudge_x = 0.5, nudge_y = 0.5) +
+  geom_text(aes(label = plot), nudge_x = 0.5, nudge_y = 0.5) +
   labs(x = "Total Vegetation Cover (%)", y = "# Photos in Rarefaction Data")
 
 ```
