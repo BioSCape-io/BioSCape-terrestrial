@@ -1,7 +1,7 @@
 # BioSCape Vegetation Plots, Cape Floristic Region, South Africa, 2023
 Jasper Slingsby, Ross Turner, Douglas Euston-Brown, Greg Nicolson,
 Steven Molteno, Stuart Hall, Paul Emms, Henry. A. Frye, Phillip. A.
-Townsend, Anabelle Cardoso, Erin Hestir, Adam M. Wilson
+Townsend, Anabelle Cardoso, Erin Hestir, Brian Maitner, Adam M. Wilson
 2026-10-01
 
     [1] TRUE
@@ -18,7 +18,9 @@ between 2023-05-03 and 2023-11-01 and divided into four quadrants (NE,
 NW, SE, SW). The product reports quadrant-level and plot-level
 fractional cover of bare soil, bare rock, dead vegetation, and live
 vegetation, together with species-level percent cover, stem counts, and
-canopy diameter for 709 species. The data were collected in the field by
+canopy diameter for 709 species. All species with at least 5% cover were
+included in the dataset, plus additional species where needed to make up
+80% of the total cover. The data were collected in the field by
 botanists. Plot-center coordinates are in the companion spatial file.
 
 ## Dataset overview
@@ -111,7 +113,7 @@ Text missing values are `NA`. `record_id` is unique within each CSV.
 | bioscape_veg_plot_species_v20261001.csv | 1974 | 207912 | 63d79b3112a0ff0a4e88f46dd8d5b4487d94ba9b60e463fd06b015155e7abba2 |
 | bioscape_veg_quadrat_summary_v20261001.csv | 756 | 162343 | 2afa3f25a04ce9d0e2697f7f8c5bd8676bb87c04fa60c91e65f92fc6eb72d09d |
 | bioscape_veg_quadrat_species_v20261001.csv | 4795 | 768295 | 81fc2914fb2bbb0372805af93cbb50755911d55b97bb678161ea597a38db1357 |
-| bioscape_veg_spatial_v20261001.gpkg | 500 | 2191360 | 13bec20d3826acf4c731bb3b171edc582988857824239b69d3454bc78feffebc |
+| bioscape_veg_spatial_v20261001.gpkg | 500 | 2191360 | 827d3a355a9d1ca6dcf07a324a7f7b7506082d443ba87026394124c2d066e9fc |
 
 - **Plot summary** (189 rows). One row per surveyed plot. Fractional
   cover, vegetation height, and soil depth are means of the four
@@ -137,7 +139,9 @@ WGS 84 (EPSG:4326). Layers are `plot_centers`, `plot_parking`, and
   Center ids absent from the plot summary: none. `bioscape_plot_id`
   matches `plot`.
 - `plot_parking`, 122 points where a vehicle was parked for the survey.
-- `plot_polygons`, 188 polygons recorded around plots.
+- `plot_polygons`, 188 Patches of vegetation the botanists deemed to be
+  representative of the plot (e.g. similar species, post-fire age, soil)
+  that are at least 15 meters in radius and ideally over 50 meters.
 
 `plot_centers` attributes:
 
