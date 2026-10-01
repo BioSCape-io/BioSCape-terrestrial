@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>https://BioSCape-io.github.io/BioSCape-terrestrial/ornl_daac/vegplot_readme.html</loc>
+    <lastmod>2026-10-01T17:54:54.835Z</lastmod>
+  </url>
+  <url>
     <loc>https://BioSCape-io.github.io/BioSCape-terrestrial/index.html</loc>
     <lastmod>2026-10-01T17:00:20.668Z</lastmod>
   </url>
