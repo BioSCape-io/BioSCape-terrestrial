@@ -113,7 +113,7 @@ Text missing values are `NA`. `record_id` is unique within each CSV.
 | bioscape_veg_plot_species_v20261001.csv | 1974 | 207912 | 63d79b3112a0ff0a4e88f46dd8d5b4487d94ba9b60e463fd06b015155e7abba2 |
 | bioscape_veg_quadrat_summary_v20261001.csv | 756 | 162343 | 2afa3f25a04ce9d0e2697f7f8c5bd8676bb87c04fa60c91e65f92fc6eb72d09d |
 | bioscape_veg_quadrat_species_v20261001.csv | 4795 | 768295 | 81fc2914fb2bbb0372805af93cbb50755911d55b97bb678161ea597a38db1357 |
-| bioscape_veg_spatial_v20261001.gpkg | 500 | 2191360 | 827d3a355a9d1ca6dcf07a324a7f7b7506082d443ba87026394124c2d066e9fc |
+| bioscape_veg_spatial_v20261001.gpkg | 500 | 2191360 | 3bb199991a2c4d39cfabcfe19c1f96c10f8f8bed68be0045f9da8f34136198fb |
 
 - **Plot summary** (189 rows). One row per surveyed plot. Fractional
   cover, vegetation height, and soil depth are means of the four
