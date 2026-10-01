@@ -274,6 +274,15 @@ if (F) {
   )
 }
 
+qspd_file <- "data/bioscape_veg_quadrat_species_v20241104.csv"
+if (F) {
+  download.file(
+    "https://github.com/BioSCape-io/BioSCape-terrestrial/releases/download/v20241104/bioscape_veg_quadrat_species_v20241104.csv",
+    destfile = qspd_file
+  )
+}
+
+
 spd <- read_csv(spd_file, show_col_types = FALSE)
 
 # Per-plot species list from the vegetation survey — the authoritative reference.
@@ -921,28 +930,39 @@ if (F) pb_upload(photo_all_file,tag=tag)
 
 ## Rename and organize all photos
 
-Photos were copied from the shared Google Drive source folders into a standardised local directory structure (`data/photo_out/<BScpPID>/`), where unmatched photos (no GPS-derived plot assignment) are placed in a `00/` subfolder. Each file was renamed according to the convention `<BScpPID>_<photo_type>_<YYYYMMDD_HHMMSS>_<botanist>.jpeg`, where the botanist suffix disambiguates the rare case of two photographers capturing a photo at the same plot within the same second. Files are copied byte-for-byte with `file.copy()` to preserve all original EXIF metadata intact; `exiftool` is then used to *add* structured provenance fields on top without re-encoding the image. This chunk is set to `eval=F` and must be run manually after verifying the Google Drive paths.
+Photos were copied from the shared Google Drive source folders into a standardised local directory structure (`data/photo_out/<plot>/`), where unmatched photos (no GPS-derived plot assignment) are placed in a `00/` subfolder. Each file was renamed according to the convention `<plot>_<photo_type>_<YYYYMMDD_HHMMSS>_<botanist>_<original_stem>.jpeg`. The original filename stem keeps two photos taken at the same plot in the same second from overwriting each other once every file sits in the single folder the iNat uploader requires. Files are copied byte-for-byte with `file.copy()` to preserve all original EXIF metadata intact; `exiftool` is then used to *add* structured provenance fields on top without re-encoding the image. This chunk is set to `eval=F` and must be run manually after verifying the Google Drive paths. When it finishes, it writes `newfile` back onto `photo_all_file`.
 
 ```{r, eval=F}
 
 photo_all3 <- photo_all2 |>
   st_drop_geometry() |>
   mutate(
-    # Use "00" as the plot folder for photos that could not be matched to a plot.
-    plot_folder = if_else(is.na(BScpPID), "00", BScpPID),
-    # Sanitise botanist name for use in a filename (replace spaces / special chars
-    # with underscores).
+    # `plot` is the GPS-assigned plot id (for example T001). Unmatched photos
+    # go in folder "00".
+    plot_folder = if_else(is.na(plot), "00", plot),
     botanist_safe = str_replace_all(botanist, "[^A-Za-z0-9]", "_"),
-    # Naming convention: <plot>_<type>_<YYYYMMDD_HHMMSS>_<botanist>.jpeg
-    # Appending botanist prevents silent overwrites when two photographers take a
-    # photo at the same plot within the same second.
+    # Original stem, stripped of spaces, so two species photographed in the
+    # same second do not share a basename in the flat iNat folder.
+    file_stem = str_replace_all(
+      tools::file_path_sans_ext(filename),
+      "[^A-Za-z0-9]+", "_"
+    ),
     newfile = paste0(
       plot_folder, "/",
       plot_folder, "_", photo_type, "_",
       format(datetime, "%Y%m%d_%H%M%S"), "_",
-      botanist_safe, ".jpeg"
+      botanist_safe, "_", file_stem, ".jpeg"
     )
-  )
+  ) |>
+  group_by(newfile) |>
+  mutate(
+    newfile = if_else(
+      n() == 1L,
+      newfile,
+      str_replace(newfile, "\\.jpeg$", paste0("_", row_number(), ".jpeg"))
+    )
+  ) |>
+  ungroup()
 
 output_folder <- "data/photo_out/"
 
@@ -998,7 +1018,7 @@ purrr::walk(seq_len(nrow(photo_all3)), function(i) {
   # Use the matched plot ID for the title, falling back to "unmatched" for the
   # "00" folder photos so the Title tag is still human-readable.
   plot_label <- if_else(
-    is.na(photo_all3$BScpPID[i]), "unmatched", photo_all3$BScpPID[i]
+    is.na(photo_all3$plot[i]), "unmatched", photo_all3$plot[i]
   )
 
   # Sanitise free-text fields that may contain characters that would break the
@@ -1046,6 +1066,12 @@ purrr::walk(seq_len(nrow(photo_all3)), function(i) {
 
   exiftool_call(args = cmd, fnames = output_file)
 })
+
+# Persist newfile on the vegphoto CSV so iNat_prepare.qmd can name the media files.
+photo_all3 |>
+  select(-plot_folder, -botanist_safe, -file_stem) |>
+  write_csv(photo_all_file)
+cat("Wrote", photo_all_file, "with newfile populated.\n")
 ```
 
 # Upload Photos to GitHub Release
