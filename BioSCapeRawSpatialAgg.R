@@ -682,8 +682,7 @@ CFRGroundPointsFlag <- CFRGroundPoints %>% left_join(QualityAssess, by = c('BioS
 LocationFlagPlots <- outside_buffer$BioScapePlotID
 CFRGroundPointsFlag <- CFRGroundPointsFlag %>% mutate('LocationFlag' = case_when(BioScapePlotID %in% LocationFlagPlots  ~ 'See Townsend alternative location'))
 
-CFRGroundPointsFlag <- CFRGroundPointsFlag %>% dplyr::select(BioScapePlotID:Botanist, DateTime, Name:Description, QualityFlag, LocationFlag, TownsendNotes, geometry ) %>%
-  dplyr::rename('BotanistVisitDateTime' = DateTime, 'BotanistSpatialNotes' =  Description)
+CFRGroundPointsFlag <- CFRGroundPointsFlag %>% dplyr::select(BioScapePlotID:Botanist, Name, Description, DateTime, PlotNote, QualityFlag, QualityFlag2, LocationFlag, geometry )
 
 #Center of T282 was not visited by Townsend; change location flag
 CFRGroundPointsFlag <- CFRGroundPointsFlag %>%
@@ -712,15 +711,17 @@ CFRGroundPointsFlag_Assoc <- left_join(CFRGroundPointsFlag, df_final, by = "BioS
 
 # Convert "NA" and "" to true NA values
 CFRGroundPointsFlag_Assoc <- CFRGroundPointsFlag_Assoc %>%
-  mutate(across(c(QualityFlag, TownsendNotes, PTPlotA,PTPlotB,PTPlotC, PTPlotD), ~na_if(., "NA"))) %>%
-  mutate(across(c(QualityFlag, TownsendNotes, PTPlotA,PTPlotB,PTPlotC, PTPlotD), ~na_if(., "")))
+  mutate(across(c(QualityFlag, QualityFlag2, PlotNote, PTPlotA,PTPlotB,PTPlotC, PTPlotD), ~na_if(., "NA"))) %>%
+  mutate(across(c(QualityFlag, QualityFlag2, PlotNote, PTPlotA,PTPlotB,PTPlotC, PTPlotD), ~na_if(., "")))
 
 #### Convert time of GPS to Coordinated Universal Time (UTC) ####
 
 # Following DAAC recommendations
 # Parse the time of measurement column and convert to UTC
-CFRGroundPointsFlag_Assoc <- CFRGroundPointsFlag_Assoc %>%
-  mutate(BotanistVisitDateTime = dmy_hms(BotanistVisitDateTime, tz = "UTC"))
+# Not applied in the v20241114 output: DateTime stayed as the botanists' raw
+# clock-time text, which has no timezone (local SAST, not UTC).
+# CFRGroundPointsFlag_Assoc <- CFRGroundPointsFlag_Assoc %>%
+#   mutate(BotanistVisitDateTime = dmy_hms(BotanistVisitDateTime, tz = "UTC"))
 
 #### Add in alternative Townsend plot GPS for location flags ####
 
