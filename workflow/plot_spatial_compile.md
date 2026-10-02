@@ -75,3 +75,20 @@ Geometry is identical for all 189 centers, 188 polygons and 122 parking points.
 Sys.setenv(BIOSCAPE_SPATIAL_INPUTS = "path/to/townsend_inputs")
 source("workflow/plot_spatial_compile.R")
 ```
+
+## Note for `ornl_daac/vegplot_readme.qmd`
+
+That file (on `dev-adam`) renames `PTPlotD.x` with
+`rename_with(~ "PTPlotD", .cols = any_of("PTPlotD.x"))`. With dplyr 1.2 this
+errors when `PTPlotD.x` is absent, which it now is. A form that works for both
+old and new files:
+
+```r
+centers <- centers |>
+  rename(any_of(c(PTPlotD = "PTPlotD.x"))) |>
+  select(-any_of("PTPlotD.y")) |>
+  fix_layer()
+```
+
+With that change the new file gives the same columns, in the same order, as
+the ORNLv1 `plot_centers`, `plot_parking` and `plot_polygons` layers.
