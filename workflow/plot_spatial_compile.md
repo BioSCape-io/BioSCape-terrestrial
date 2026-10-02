@@ -22,15 +22,19 @@ The script reads one input folder (`BIOSCAPE_SPATIAL_INPUTS`, default
   digits.
 - Region: fixed per upload where feature names carry no region (North
   Cederberg), otherwise the part of the feature name before the first `_`.
-  Region values are not yet harmonised (mixed case, some typos).
+  Region values are as the botanists named their features (mixed case, some
+  typos, and parking names such as "Test" or "Turnoff"); no standard region
+  list was set for the uploads, so they are not harmonised here.
 - Botanist: fixed per upload, or by plot for the three mixed uploads.
 - Dropped: Ross's T089 center and polygon (no veg survey data); Ross's T096
   calibration survey (Doug's is the final one); Adam Labuschagne's T051, T053,
   T139, T194 and T275.
 - `LocationFlag` = "See Townsend alternative location" when the Townsend center
   is more than 10 m (geodesic) from the botanist center of the same plot, with
-  the Townsend point in `TownsendLong`/`TownsendLat`. T096 (calibration plot)
-  and T282 (center not visited by the Townsend team) are exempt.
+  the Townsend point in `TownsendLong`/`TownsendLat`. Exempt: T096, the
+  calibration plot, whose Townsend point (from a revisit) is 12.6 m from
+  Doug's center and is not a reliable check; and T282, whose center the
+  Townsend team did not visit.
 - `PTPlotA`-`PTPlotD`: up to four associated Townsend opportunistic plots.
 - `DateTime`: the botanist's GPS clock time as recorded, local South African
   time with no timezone in the source.

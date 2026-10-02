@@ -278,7 +278,9 @@ paired_centers$offset_m <- st_distance(
   as.numeric()
 
 # Plots exempt from the location flag:
-# T096 - calibration plot surveyed twice (see above); not flagged.
+# T096 - calibration plot surveyed twice (see above). The Townsend team's
+#        revisit makes its point an unreliable check (12.6 m from Doug's
+#        center), so it is not flagged.
 # T282 - the Townsend team did not visit the plot center.
 location_flag_exempt <- c("T096", "T282")
 
