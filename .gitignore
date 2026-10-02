@@ -11,3 +11,4 @@ index_cache
 .DS_Store
 webdata
 **/*.quarto_ipynb
+*.gpkg

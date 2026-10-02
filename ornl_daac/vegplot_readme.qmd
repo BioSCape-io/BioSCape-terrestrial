@@ -1,34 +1,36 @@
 ---
 title: "BioSCape Vegetation Plots, Cape Floristic Region, South Africa, 2023"
-author: "Jasper Slingsby, Ross Turner, Douglas Euston-Brown, Greg Nicolson, Steven Molteno, Stuart Hall, Paul Emms,  Henry. A. Frye, Phillip. A. Townsend, Anabelle Cardoso, Erin Hestir, Adam M. Wilson"
+author: "Jasper Slingsby, Ross Turner, Douglas Euston-Brown, Greg Nicolson, Steven Molteno, Stuart Hall, Paul Emms,  Henry. A. Frye, Phillip. A. Townsend, Anabelle Cardoso, Erin Hestir, Brian Maitner, Adam M. Wilson"
 date: today
-format:
-  gfm:
-    output-file: README.md
-    toc: false
 execute:
   echo: false
   warning: false
   message: false
 knitr:
+  opts_chunk:
+    echo: false
+    warning: false
+    message: false
   opts_knit:
     root.dir: ".."
 ---
 
-```{r}
+```{r setup, echo=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
 # Paths, kept together so a new compilation tag is a one-line change.
 library(tidyverse)
 library(sf)
 library(knitr)
 
 source_tag <- "v20241104"
-spatial_source_tag <- "v20241114"
-release_tag <- "v20261001"
+spatial_source_tag <- "v20261002"
+release_tag <- "v20261002"
 plot_summary_file <- "data/bioscape_veg_plot_summary_v20241104.csv"
 plot_species_file <- "data/bioscape_veg_plot_species_v20241104.csv"
 quadrat_summary_file <- "data/bioscape_veg_quadrat_summary_v20241104.csv"
 quadrat_species_file <- "data/bioscape_veg_quadrat_species_v20241104.csv"
-spatial_file <- "data/spatial/bioscape_veg_spatial_v20241114.gpkg"
+spatial_file <- "data/spatial/bioscape_veg_spatial_v20261002.gpkg"
 out_dir <- "ornl_daac"
 
 dataset_title <- paste(
@@ -207,8 +209,8 @@ fix_layer <- function(x) {
 }
 
 centers <- centers |>
+  rename(any_of(c(PTPlotD = "PTPlotD.x"))) |>
   select(-any_of("PTPlotD.y")) |>
-  rename_with(~ "PTPlotD", .cols = any_of("PTPlotD.x")) |>
   fix_layer()
 parking <- fix_layer(parking)
 polygons <- fix_layer(polygons)
@@ -382,7 +384,7 @@ between `r survey_start` and `r survey_end` and divided into four
 quadrants (NE, NW, SE, SW). The product reports quadrant-level and
 plot-level fractional cover of bare soil, bare rock, dead vegetation,
 and live vegetation, together with species-level percent cover, stem
-counts, and canopy diameter for `r n_taxa` species. The data were collected in the field by botanists. 
+counts, and canopy diameter for `r n_taxa` species. All species with at least 5% cover were included in the dataset, plus additional species where needed to make up 80% of the total cover. The data were collected in the field by botanists. 
 Plot-center coordinates are in the companion spatial file. 
 
 ## Dataset overview
@@ -417,9 +419,7 @@ Biodiversity* 4:2. <https://doi.org/10.1038/s44185-024-00071-5>
 
 **Acknowledgments:** Cardoso et al. (2025) report NASA award
 80NSSC21K0086 to A.M. Wilson and E.L. Hestir for the U.S. components of
-BioSCape, and National Research Foundation grant 142438 plus the South
-African Environmental Observation Network (SAEON) for J.A. Slingsby and
-G.R. Moncrieff. 
+BioSCape, and National Research Foundation grant 142438 to J.A. Slingsby. 
 
 ## Dataset characteristics
 
@@ -505,7 +505,7 @@ file_info |>
   `r centers_missing_note`. `bioscape_plot_id` matches `plot`.
 - `plot_parking`, `r nrow(parking)` points where a vehicle was parked
   for the survey.
-- `plot_polygons`, `r nrow(polygons)` polygons recorded around plots.
+- `plot_polygons`, `r nrow(polygons)` Patches of vegetation the botanists deemed to be representative of the plot (e.g. similar species, post-fire age, soil) that are at least 15 meters in radius and ideally over 50 meters.
 
 `plot_centers` attributes:
 
@@ -520,7 +520,7 @@ file_info |>
 | description | Short free-text note. |
 | quality_flag | Flag assigned by the Townsend team while visiting the plot during BioSCape. Values are listed below. |
 | quality_flag_2 | A second Townsend visit flag. One plot is `Boundary`. |
-| location_flag | The original GPS may not have been taken at the plot center. This flag is set when the BioSCape center and the Townsend center are 10 m apart. The stored value is `See Townsend alternative location`. See `townsend_long` and `townsend_lat`. |
+| location_flag | The original GPS may not have been taken at the plot center. This flag is set when that plot's BioSCape center and its own Townsend center differ by more than 10 m. The stored value is `See Townsend alternative location`. See `townsend_long` and `townsend_lat`. |
 | pt_plot_a | Townsend opportunistic plot associated with this BioSCape plot. Additional plots were collected where the original plot had a quality flag, where nearby vegetation was similar but had a different dominant species, or where a nearby patch was a single species. |
 | pt_plot_b | A second Townsend plot label. See `pt_plot_a`. |
 | pt_plot_c | A third Townsend plot label. See `pt_plot_a`. |
@@ -700,6 +700,11 @@ Version 1 changes from the source tables:
 - `r n_urls_removed` web address in `new_species` was removed.
 - The observer value `deb` and the spatial botanist name
   `Doug Euston-Brown` are stored as Douglas Euston-Brown.
+- Spatial source `r spatial_source_tag` drops the duplicate T114
+  center and its location flag, sets T074 region to `CapePoint`,
+  links T183 to associated plot `pt183`, stores `pt_plot_d` as one
+  column, and uses real missing values instead of the text `NA` in
+  Townsend plot labels.
 
 `r nrow(dup_taxon)` quadrat-by-taxon keys still occur more than once
 because the cover or count differed. `record_id` keeps those rows
@@ -786,7 +791,7 @@ library(piggyback)
 
 github_repo <- "BioSCape-io/BioSCape-terrestrial"
 github_tag <- "ORNLv1"
-release_tag <- "v20261001"
+release_tag <- "v20261002"
 github_dir <- "ornl_daac"
 github_files <- c(
   file.path(
