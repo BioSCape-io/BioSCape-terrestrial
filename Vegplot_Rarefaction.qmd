@@ -4,8 +4,6 @@ author: "Adam M. Wilson, Jasper Slingsby, and the BioSCape Team"
 date: "`r Sys.Date()`"
 format:
   html:
-    toc: true
-    toc-depth: 3
     code-fold: true
     code-summary: "Show the code"
 execute:
