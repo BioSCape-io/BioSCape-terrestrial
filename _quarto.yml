@@ -1,19 +1,24 @@
 project:
   type: website
+  render:
+    - "*.qmd"
+    - "ornl_daac/vegplot_readme.qmd"
 
 website:
-  title: "BiOSCape Terrestrial Data"
+  title: "BioSCape Terrestrial Data"
   navbar:
     left:
-      - href: index.qmd
-        text: Home
-      - about.qmd
+      - href: Vegplot_Rarefaction.qmd
+        text: Rarefaction
+      - href: botanist_photo_processing.qmd
+        text: Botanist Photo Processing
+      - href: ornl_daac/vegplot_readme.qmd
+        text: Data Release v1
 
 format:
   html:
     theme: cosmo
     css: styles.css
     toc: true
-
-editor: visual
+editor: source
 

@@ -1,0 +1,1087 @@
+---
+title: "BioSCape Photo Processing"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    code-summary: "Show the code"
+---
+
+Required libraries were loaded and a versioned release tag was generated from the current date to label all output files and GitHub releases produced by this workflow.
+
+```{r, message=FALSE, warning=FALSE, echo=TRUE}
+# Load necessary libraries
+library(exifr)       # EXIF metadata extraction (used in eval=F photo-copy chunk)
+library(lubridate)   # date and time parsing
+library(stringr)     # string operations
+library(tidyverse)   # dplyr, purrr, ggplot2, readr, tibble, tidyr
+library(googledrive) # Google Drive download
+library(readxl)      # read Excel workbooks
+library(knitr)       # kable tables
+library(piggyback)   # GitHub release upload/download
+library(leaflet)     # interactive maps
+library(magick)      # HEIC → JPEG conversion (used in eval=F photo-copy chunk)
+library(DT)          # interactive datatable output
+library(sf)          # spatial data and distance calculations
+library(stringdist)  # Jaro-Winkler fuzzy string matching
+
+tagdate=paste0("v",format(today(),"%Y%m%d"))
+tag=paste0("vegphoto_",tagdate)
+#tag = "vegphoto_v20241126"
+if(F){
+pb_new_release("BioSCape-io/BioSCape-terrestrial",tag=tag)
+}
+```
+
+# Process combined photo spreadsheet
+
+## Download current version of spreadsheet
+
+The master photo metadata spreadsheet (`Rarefaction_FA.xlsx`) was downloaded from Google Drive. This file contains one worksheet per botanist, each populated from the metadata of photographs taken in the field using a standardised template capturing filename, GPS coordinates, timestamp, species identification, and photo type flags.
+
+```{r, message=FALSE, warning=FALSE, echo=TRUE, eval=T}
+######### User settings
+if (Sys.getenv("USER") == "jasper") {gmail = "jasper.slingsby@uct.ac.za"}
+if (Sys.getenv("USER") == "adamw") {gmail = "adamw@buffalo.edu"}
+
+# Define the URL or key of the Google Sheets
+fname="data/Rarefaction_FA.xlsx"
+sheet_url="https://docs.google.com/spreadsheets/d/13kJ7O4PbH6bM-Y89wGf_tbxs-R1THXlb/edit?usp=sharing&ouid=100268570982256677112&rtpof=true&sd=true"
+
+if(F) drive_download(sheet_url, path = fname, overwrite = TRUE)
+```
+
+## Parse and combine all botanist sheets
+
+Each botanist worksheet was read and combined into a single dataset. Rows lacking a timestamp were discarded as incomplete entries. The `modify_date` field (formatted `YYYY:MM:DD HH:MM:SS` by the camera firmware) was re-formatted to ISO-8601 and parsed into separate `datetime`, `date`, and `time` columns. GPS coordinate fields were coerced to numeric; cells containing non-numeric text from Excel were silently converted to `NA`. Photos were classified as either `"plot"` (cardinal direction shots, plot overview, or rarefaction sequence markers) or `"species"` (individual taxon records) based on the content of the `genus` field. Cardinal directions were matched as exact single-character strings to avoid false positives within genus names. Records with missing GPS coordinates (e.g. screenshots) were excluded, and the resulting table was converted to an `sf` point layer in WGS 84 (EPSG:4326).
+
+```{r, message=FALSE, warning=FALSE, echo=TRUE}
+sheets = excel_sheets(fname)
+# Read sheets and do a little cleaning for irregularites
+
+sheets <- sheets[-1]  # Drop the old Ross spreadsheet (historical; pre-dates unified workflow)
+
+# Read all botanist sheets and combine into one sf object.
+# purrr::map() iterates over sheet names; bind_rows() stacks the results.
+photo_all <- map(sheets, \(i)
+  read_xlsx(fname, i) |>
+    # Drop rows with no timestamp — incomplete entries that cannot be placed on
+    # a timeline and would produce unparseable strings downstream.
+    filter(!is.na(modify_date)) |>
+    mutate(
+      # Camera firmware writes dates as "YYYY:MM:DD HH:MM:SS"; replace the
+      # date-portion colons with dashes so lubridate can parse the string.
+      datetime    = ymd_hms(str_replace(modify_date,
+                              "^(\\d{4}):(\\d{2}):(\\d{2})", "\\1-\\2-\\3")),
+      date        = date(datetime),
+      time        = hms(format(datetime, "%H:%M:%S")),
+      modify_date = datetime,
+      # GPS fields can arrive as character "NA" from Excel; suppress coercion
+      # warnings because NA → NA is the intended behaviour here.
+      gps_latitude       = suppressWarnings(as.numeric(gps_latitude)),
+      gps_longitude      = suppressWarnings(as.numeric(gps_longitude)),
+      gps_altitude       = suppressWarnings(as.numeric(gps_altitude)),
+      gps_position_error = suppressWarnings(as.numeric(gps_position_error)),
+      plot_number        = as.character(plot_number),
+      # Classify plot-level vs species photos based on the genus field.
+      # Cardinal directions (S, N, W, E) are matched as whole words to avoid
+      # false positives inside genus names (e.g. "Erica" contains "E").
+      # W2/S2/E2/N2 are sub-cardinal directions used by some botanists.
+      photo_type = case_when(
+        grepl("^(plot|start|rarefaction|end|stop|centre|center|magnet|cairn|view|datasheet|webbing|alluvial|unidentified)$",
+              genus, ignore.case = TRUE)             ~ "plot",
+        grepl("^[SNWE]$|W2|S2|E2|N2|South", genus)  ~ "plot",
+        TRUE                                         ~ "species"
+      )
+    ) |>
+    select(-exposure_time) |>   # drop — inconsistent column type across sheets
+    filter(!is.na(gps_longitude) & !is.na(gps_latitude)) |>  # drop screenshots
+    st_as_sf(coords = c("gps_longitude", "gps_latitude"), remove = FALSE,
+             crs = 4326)
+) |>
+  bind_rows()
+
+```
+
+## Preview raw photo data
+
+The first rows of the combined photo table are displayed here for a quick sanity check of column names, data types, and representative values — before any spatial or taxonomic processing.
+
+```{r, message=FALSE, warning=FALSE, echo=TRUE}
+kable(head(photo_all))
+```
+
+### Assign photos to vegetation plots
+
+BioSCape vegetation plot centroids and homogeneous-patch polygons were loaded from the versioned spatial products file. The Euclidean distance from each photo to every plot centroid was computed in the projected coordinate system of the plot layer. Each photo was assigned to its nearest plot; assignments were nullified for photos located more than 1,000 m from the nearest centroid, as these are unlikely to represent intended plot observations.
+
+```{r, message=FALSE, warning=FALSE, echo=TRUE}
+
+# download spatial data
+if(F){
+  pb_download(file="BioScapeSpatialProducts2024_11_12.zip",dest = "data")
+  unzip("data/BioScapeSpatialProducts2024_11_12.zip",exdir = "data/spatial")
+}
+
+plots=read_sf("data/spatial/BioSCapeVegCenters2024_11_12.shp")
+homogeneous=read_sf("data/spatial/BioSCapeVegPolys2024_11_12.shp")
+
+
+# For each photo, find its nearest plot centroid and compute the distance.
+# st_nearest_feature handles CRS differences internally and is faster than
+# computing the full n_photos × n_plots distance matrix.
+nearest_idx <- st_nearest_feature(photo_all, plots)
+
+dists <- tibble(
+  plot_closest   = plots$BScpPID[nearest_idx],
+  dist_to_plot_m = round(
+    as.numeric(st_distance(photo_all, plots[nearest_idx, ], by_element = TRUE)),
+    0
+  )
+)
+
+photo_all2 <-  photo_all |>
+     st_transform(st_crs(plots)) |>
+     bind_cols(dists) |>
+  mutate(plot=ifelse(dist_to_plot_m>1000,NA,plot_closest)) # drop linked plots if taken more than 1km from plot centroid.
+
+if(F){
+
+  photo_all2 |>
+  select(photo_all2,plot,plot_closest,dist_to_plot_m)|> View()
+  identical(photo_all2$plot_closest,photo_all2$plot) #confirm output from two methods above is the same
+
+    photo_all2 |>
+#    filter(dist_to_plot_m<50) |>
+    ggplot(aes(x=dist_to_plot_m))+
+    geom_histogram()#binwidth=0.1)
+
+  }
+# Plot histogram of distance to plot
+
+if(F){
+  photo_all2 |>
+    datatable()
+
+}
+
+```
+
+## Clean species field
+
+The `species` column from the botanist spreadsheets sometimes contains annotation suffixes encoded as dot-separated tokens (e.g. `sulcata.start.rarefaction`, `cf.gladiata.flat.stems.1`) rather than a bare species epithet. Two derived columns are created: `species_clean` holds the bare epithet (`NA` when the record only reaches genus level — i.e. when the first token is `"cf"`, `"sp"`, `"na"`, or a bare number), and `species_notes` captures any remaining content after removing known annotation phrases. The cleaned field is used for fuzzy matching; the original `species` column is preserved unmodified for traceability.
+
+```{r, message=FALSE, warning=FALSE}
+# Recognised annotation phrases that appear as dot-joined suffixes in the
+# species field but are not part of the taxon name.
+annotation_pattern <- regex(
+  "\\b(not in cover|start rarefaction|pink flowers|flat stems)\\b",
+  ignore_case = TRUE
+)
+
+# First-token placeholders that indicate the species epithet is unresolved:
+#   cf  – uncertain identification (species epithet follows as a note)
+#   sp  – species unknown within the genus
+#   na  – not identified
+#   <number> – repeat-photo counter used as species token
+unresolved_terms <- c("cf", "sp", "sp.", "na")
+
+photo_all2 <- photo_all2 |>
+  mutate(
+    # Replace dot word-separators with spaces and collapse extra whitespace, so
+    # "cf.gladiata.flat.stems.1" → "cf gladiata flat stems 1".
+    species_raw      = str_squish(str_replace_all(coalesce(species, ""), "\\.", " ")),
+    species_first    = word(species_raw, 1),
+    # Species is resolved to epithet level unless the first token is a placeholder
+    # term, a bare number, or a "sp" + number code (e.g. sp1, sp2 — genus-level
+    # identifications where the botanist numbered multiple morphospecies within
+    # the same genus rather than providing a species epithet).
+    species_resolved = species_first != "" &
+                       !str_to_lower(species_first) %in% unresolved_terms &
+                       !str_detect(species_first, "^\\d+$") &
+                       !str_detect(str_to_lower(species_first), "^sp\\d+$")
+  ) |>
+  mutate(
+    # Bare epithet for resolved identifications; NA for genus-only records.
+    species_clean = if_else(species_resolved, species_first, NA_character_),
+    # Content beyond the epithet (or the whole string for unresolved records),
+    # stripped of annotation phrases and bare repeat-photo counters.
+    species_rest  = if_else(
+      species_resolved,
+      coalesce(str_squish(word(species_raw, 2, -1)), ""),
+      species_raw
+    ),
+    species_rest  = str_squish(str_remove_all(species_rest, annotation_pattern)),
+    # Remove leading or trailing bare numbers (repeat-photo counters, e.g. "1").
+    species_rest  = str_squish(str_remove(species_rest, "^\\d+\\s*|\\s*\\d+$")),
+    species_notes = if_else(species_rest == "", NA_character_, species_rest)
+  ) |>
+  select(-species_raw, -species_first, -species_resolved, -species_rest)
+
+cat(
+  "Species photos with cleaned epithet (species_clean not NA): ",
+  sum(!is.na(photo_all2$species_clean[photo_all2$photo_type == "species"]),
+      na.rm = TRUE), "\n",
+  "Species photos genus-only (species_clean is NA):            ",
+  sum( is.na(photo_all2$species_clean[photo_all2$photo_type == "species"]) &
+       !is.na(photo_all2$genus[photo_all2$photo_type == "species"]),
+      na.rm = TRUE), "\n"
+)
+```
+
+## Manual overrides for non-species photo names
+
+Some entries in the botanist spreadsheets use the `genus` field for free-text notes (landscape descriptions, common names, data-entry labels) that are not taxon names. These slip past the `photo_type` classifier and would otherwise be passed to the fuzzy matcher, producing spurious corrections. The table below lists known cases; set `corrected_name` to `NA` to exclude an entry from species matching entirely, or to a valid `"Genus species"` string to force a specific canonical match. Add new rows here as they are discovered during review. This table is applied to the fuzzy-matching results in the **Apply corrections to the photo dataset** section below.
+
+```{r, message=FALSE, warning=FALSE}
+# photo_name values are the cleaned "genus [species_clean]" strings that reach
+# the fuzzy matcher.  NA corrected_name → excluded from species list entirely.
+manual_overrides <- tribble(
+  ~photo_name,                                        ~corrected_name,
+  "View of 8500 year old eroded alluvial sediments",  NA_character_,
+  "? not",                                            NA_character_,
+  "unknown",                                          NA_character_,
+  "Vygie not",                                        NA_character_,
+  "vygie not",                                        NA_character_,
+  "seen from_E_on_6_May",                             NA_character_,
+  "datasheet1",                                       NA_character_,
+  "datasheet2",                                       NA_character_,
+  "red webbing",                                      NA_character_,
+  "No idea",                                          NA_character_,
+  "Thymelaeaceae probably",                           "Thymelaeaceae",
+  "buck droppings",                                   NA_character_,
+  "much dung",                                        NA_character_,
+  "Views of",                                         NA_character_,
+  "large friendly",                                   NA_character_,
+)
+```
+
+## Join with plot-level species lists
+
+The vegetation survey species list records species actually observed and identified during structured vegetation surveys at each plot. Survey identifications are treated as the authoritative name reference. Photo-recorded names are corrected against this list using Jaro-Winkler fuzzy string matching before any cross-dataset comparison is performed, so that minor field-recording spelling errors do not inflate mismatch counts.
+
+### Load survey species data
+
+```{r, message=FALSE, warning=FALSE}
+# Path to the versioned vegetation survey species file (plot × species rows).
+# Download is wrapped in if(F) so it only runs manually when an updated file is needed.
+spd_file <- "data/bioscape_veg_plot_species_v20241104.csv"
+if (F) {
+  download.file(
+    "https://github.com/BioSCape-io/BioSCape-terrestrial/releases/download/v20241104/bioscape_veg_plot_species_v20241104.csv",
+    destfile = spd_file
+  )
+}
+
+qspd_file <- "data/bioscape_veg_quadrat_species_v20241104.csv"
+if (F) {
+  download.file(
+    "https://github.com/BioSCape-io/BioSCape-terrestrial/releases/download/v20241104/bioscape_veg_quadrat_species_v20241104.csv",
+    destfile = qspd_file
+  )
+}
+
+
+spd <- read_csv(spd_file, show_col_types = FALSE)
+
+# Per-plot species list from the vegetation survey — the authoritative reference.
+# Genus_Species_combo contains "Genus species"; word() splits on the first space.
+spd_species <- spd |>
+  filter(!is.na(Genus_Species_combo)) |>
+  mutate(
+    plot = Plot,
+    genus     = word(Genus_Species_combo, 1),
+    species   = word(Genus_Species_combo, 2),
+    genus_l   = str_to_lower(str_trim(genus)),
+    species_l = str_to_lower(str_trim(species)),
+    spd_name  = paste(genus, species)
+  ) |>
+  distinct(plot, genus, species, genus_l, species_l, spd_name)
+
+# Canonical accepted-species list covering all taxa observed across BioSCape
+# plots (both survey and photo data).  This is the fuzzy-matching target —
+# photo names are corrected to the nearest canonical name.
+canonical_file   <- "data/BioSCapePlots_AcceptedSpecies.csv"
+canonical_names  <- read_csv(canonical_file, show_col_types = FALSE) |>
+  pull(Taxon)
+
+cat("Unique plot × species combinations in survey data:", nrow(spd_species), "\n")
+cat("Canonical accepted taxon names (matching target): ", length(canonical_names), "\n")
+```
+
+### Fuzzy-correct photo names against the canonical species list
+
+Matching is performed in two sequential stages using the Jaro-Winkler string distance metric (p = 0.1 prefix weight). **Stage 1** matches the photo genus against all canonical genera; a photo name that fails to find a close genus match is immediately flagged `"no_match"` and receives no correction. **Stage 2** matches the species epithet against only the species recorded under the matched genus, constraining the candidate set to one genus. This two-stage design prevents a well-matching species epithet from pulling a poorly-matched genus across a genus boundary (e.g. "myrovernix glandulosa" would otherwise be corrected to "Rosenia glandulosa" because the epithet "glandulosa" is shared). When the genus matches but no species epithet clears its threshold, the entry is classified `"genus_only"` rather than forced into the nearest species. Corrections are made at the name level (not per plot), because a misspelling is a property of the entered string, not of the plot where it was recorded.
+
+```{r, message=FALSE, warning=FALSE}
+# Separate Jaro-Winkler thresholds for genus and species matching.
+# The genus threshold is tighter — genus misspellings are typically small
+# (1–2 character transpositions), so a weak genus match almost certainly
+# indicates a non-taxon entry rather than a correctable spelling error.
+jw_threshold_genus   <- 0.15   # genus: reject if best canonical genus is > 0.15 away
+jw_threshold_species <- 0.20   # species: slightly wider to catch common misspellings
+
+# ── Build canonical reference tables ──────────────────────────────────────────
+# Split canonical names into lowercase genus and species columns for two-stage
+# matching; retain the original mixed-case string for output.
+canonical_df <- tibble(canonical_name = canonical_names) |>
+  mutate(
+    genus_l   = str_to_lower(word(canonical_name, 1)),
+    species_l = str_to_lower(word(canonical_name, 2))
+  )
+
+# Unique canonical genera — target set for Stage 1 genus matching.
+canonical_genera <- unique(canonical_df$genus_l)
+
+# ── Distinct photo taxon names ─────────────────────────────────────────────────
+# Use species_clean (dots removed, annotation suffixes stripped, unresolved
+# epithets set to NA) so that noise in the raw species field does not inflate
+# string distances during matching.
+photo_names_distinct <- photo_all2 |>
+  st_drop_geometry() |>
+  filter(photo_type == "species", !is.na(genus), !is.na(plot)) |>
+  mutate(
+    photo_name = if_else(
+      is.na(species_clean),
+      str_trim(genus),
+      paste(str_trim(genus), str_trim(species_clean))
+    )
+  ) |>
+  distinct(photo_name) |>
+  mutate(
+    photo_genus_l   = str_to_lower(word(photo_name, 1)),
+    # Species epithet is NA for single-word (genus-only) entries.
+    photo_species_l = if_else(
+      str_detect(photo_name, " "),
+      str_to_lower(word(photo_name, 2)),
+      NA_character_
+    ),
+    is_genus_only = is.na(photo_species_l)
+  )
+
+# ── Stage 1: Genus matching ────────────────────────────────────────────────────
+# Match each photo genus against all canonical genera.  Only names whose best
+# genus match is within jw_threshold_genus proceed to Stage 2; all others are
+# immediately assigned "no_match" without any species correction applied.
+# This prevents non-taxon entries like "resprouting Polygalaceous" from being
+# matched — they fail at genus level before reaching species comparison at all.
+genus_dist_matrix <- stringdistmatrix(
+  photo_names_distinct$photo_genus_l,
+  canonical_genera,
+  method = "jw", p = 0.1
+)
+
+photo_names_distinct <- photo_names_distinct |>
+  mutate(
+    matched_genus_l = canonical_genera[apply(genus_dist_matrix, 1, which.min)],
+    genus_dist      = round(apply(genus_dist_matrix, 1, min), 4),
+    genus_matched   = genus_dist < jw_threshold_genus
+  )
+
+# ── Stage 2: Species matching within matched genus ─────────────────────────────
+# For names that passed genus matching and carry a species epithet, match the
+# epithet against only the species recorded under the matched genus in the
+# canonical list.  Constraining the candidate set to one genus prevents a
+# shared or similar epithet from pulling the match across a genus boundary
+# (e.g. "myrovernix glandulosa" cannot reach "Rosenia glandulosa" because
+# "myrovernix" fails genus matching before species comparison is attempted).
+# When the genus matches but the species epithet does not clear its threshold,
+# the entry is classified "genus_only" rather than forced into the nearest
+# species — the epithet is treated as unresolved, not misspelled.
+species_results <- photo_names_distinct |>
+  filter(genus_matched, !is_genus_only) |>
+  mutate(
+    sp_result = map2(
+      photo_species_l, matched_genus_l,
+      \(sp_l, gen_l) {
+        # Candidate species epithets for this matched genus (lowercase)
+        candidates <- canonical_df$species_l[canonical_df$genus_l == gen_l]
+        if (length(candidates) == 0 || is.na(sp_l)) {
+          return(tibble(
+            matched_species_l = NA_character_,
+            species_dist      = NA_real_,
+            species_matched   = FALSE
+          ))
+        }
+        dists  <- stringdist(sp_l, candidates, method = "jw", p = 0.1)
+        best_i <- which.min(dists)
+        tibble(
+          matched_species_l = candidates[best_i],
+          species_dist      = round(dists[best_i], 4),
+          species_matched   = dists[best_i] < jw_threshold_species
+        )
+      }
+    )
+  ) |>
+  unnest(sp_result) |>
+  select(photo_name, matched_species_l, species_dist, species_matched)
+
+# Attach species results back to the full names table.
+photo_names_distinct <- photo_names_distinct |>
+  left_join(species_results, by = "photo_name")
+
+# ── Assemble corrections table ─────────────────────────────────────────────────
+# Join matched genus_l + species_l back to canonical_df to recover the properly
+# capitalised canonical name.  Rows without a passing species match leave
+# canonical_name as NA and are classified "genus_only" below.
+photo_name_corrections <- photo_names_distinct |>
+  left_join(
+    canonical_df |> select(canonical_name, genus_l, species_l),
+    by = c("matched_genus_l" = "genus_l", "matched_species_l" = "species_l")
+  ) |>
+  mutate(
+    match_type = case_when(
+      # Genus-only entry (no species epithet) that cleared the genus threshold
+      is_genus_only & genus_matched                                            ~ "genus_only",
+      # Genus-only entry with no genus match — non-taxon free text
+      is_genus_only & !genus_matched                                           ~ "no_match",
+      # Binomial where genus failed to match any canonical genus
+      !genus_matched                                                           ~ "no_match",
+      # Binomial where genus matched but species epithet did not clear threshold
+      genus_matched & !coalesce(species_matched, FALSE)                       ~ "genus_only",
+      # Both stages passed — distinguish exact from fuzzy
+      genus_matched & coalesce(species_matched, FALSE) &
+        str_to_lower(photo_name) == str_to_lower(canonical_name)             ~ "exact",
+      genus_matched & coalesce(species_matched, FALSE)                        ~ "fuzzy",
+      TRUE                                                                    ~ "no_match"
+    ),
+    canonical_name_matched = if_else(
+      match_type %in% c("exact", "fuzzy"),
+      canonical_name,
+      NA_character_
+    ),
+    corrected_name = case_when(
+      match_type %in% c("exact", "fuzzy") ~ canonical_name,
+      # Recover properly capitalised genus from the canonical list
+      match_type == "genus_only"          ~ str_to_title(matched_genus_l),
+      TRUE                                ~ photo_name
+    ),
+    corrected_genus   = word(corrected_name, 1),
+    corrected_species = word(corrected_name, 2),
+    # Report species dist for full binomial matches, genus dist for genus-only
+    match_dist = case_when(
+      match_type %in% c("exact", "fuzzy") ~ species_dist,
+      match_type == "genus_only"          ~ genus_dist,
+      TRUE                                ~ NA_real_
+    )
+  ) |>
+  select(photo_name, corrected_name, canonical_name_matched, match_type,
+         match_dist, corrected_genus, corrected_species)
+
+# Apply manual overrides: stamp match_type = "excluded" and corrected_name = NA
+# (or the forced name) for any photo_name listed in manual_overrides.
+overrides_formatted <- manual_overrides |>
+  mutate(
+    match_type             = "excluded",
+    canonical_name_matched = NA_character_,
+    match_dist             = NA_real_,
+    corrected_name         = corrected_name,
+    corrected_genus        = word(corrected_name, 1),
+    corrected_species      = word(corrected_name, 2)
+  )
+
+photo_name_corrections <- rows_update(
+  photo_name_corrections,
+  overrides_formatted,
+  by = "photo_name",
+  unmatched = "ignore"
+)
+
+cat("Distinct photo taxon names assessed:    ", nrow(photo_name_corrections), "\n")
+cat("  exact match to canonical name:        ",
+    sum(photo_name_corrections$match_type == "exact"), "\n")
+cat("  fuzzy-corrected (genus <", jw_threshold_genus,
+    ", species <", jw_threshold_species, "):",
+    sum(photo_name_corrections$match_type == "fuzzy"), "\n")
+cat("  genus-only (species below threshold or not recorded):",
+    sum(photo_name_corrections$match_type == "genus_only"), "\n")
+cat("  manually excluded (non-species notes):",
+    sum(photo_name_corrections$match_type == "excluded"), "\n")
+cat("  no_match (genus dist >=", jw_threshold_genus, "):",
+    sum(photo_name_corrections$match_type == "no_match"), "\n")
+```
+
+### Review of fuzzy corrections applied
+
+The table below shows every photo name that was automatically corrected, along with the nearest verified survey name and the string distance. Review these before any downstream use — a low distance score does not guarantee a correct taxonomic match.
+
+```{r, message=FALSE, warning=FALSE}
+photo_name_corrections |>
+  filter(match_type == "fuzzy") |>
+  arrange(match_dist) |>
+  select(photo_name, corrected_name, canonical_name_matched, match_dist) |>
+  datatable(
+    caption = paste0(
+      "Photo names auto-corrected by two-stage fuzzy matching (genus JW < ",
+      jw_threshold_genus, ", species JW < ", jw_threshold_species,
+      "). Review before downstream use."
+    ),
+    options = list(pageLength = 20, scrollX = TRUE),
+    rownames = FALSE
+  )
+```
+
+### Apply corrections to the photo dataset
+
+The correction lookup is joined back to `photo_all2`, adding `corrected_genus`, `corrected_species`, `match_type`, and `match_dist` columns. The corrected names are used in all subsequent joins; the original `genus` / `species` columns are preserved unmodified for traceability.
+
+```{r, message=FALSE, warning=FALSE}
+# Build a temporary join key in photo_all2 that matches the keys used in
+# photo_names_distinct (i.e. uses species_clean, not the raw species field).
+photo_all2 <- photo_all2 |>
+  mutate(
+    photo_name = if_else(
+      photo_type == "species" & !is.na(genus) & !is.na(plot),
+      if_else(
+        is.na(species_clean),
+        str_trim(genus),
+        paste(str_trim(genus), str_trim(species_clean))
+      ),
+      NA_character_
+    )
+  ) |>
+  left_join(
+    select(photo_name_corrections,
+           photo_name, corrected_genus, corrected_species, match_type, match_dist),
+    by = "photo_name"
+  ) |>
+  # Fall back to the original genus/species only for rows that had no join key
+  # (non-species photos).  Do NOT fall back for manually excluded entries —
+  # those have match_type == "excluded" and corrected_genus intentionally NA.
+  mutate(
+    corrected_genus   = if_else(
+      is.na(match_type) | match_type != "excluded",
+      coalesce(corrected_genus, genus),
+      corrected_genus
+    ),
+    corrected_species = if_else(
+      is.na(match_type) | (match_type != "excluded" & match_type != "genus_only"),
+      coalesce(corrected_species, species),
+      corrected_species
+    )
+  ) |>
+  select(-photo_name)
+
+# Per-plot species list using corrected names — used for all subsequent joins.
+photo_species <- photo_all2 |>
+  st_drop_geometry() |>
+  filter(photo_type == "species", !is.na(corrected_genus), !is.na(plot)) |>
+  mutate(
+    genus_l   = str_to_lower(str_trim(corrected_genus)),
+    species_l = str_to_lower(str_trim(corrected_species))
+  ) |>
+  distinct(plot,
+           genus   = corrected_genus,
+           species = corrected_species,
+           genus_l, species_l)
+
+cat("Unique plot × species combinations in photos (corrected):", nrow(photo_species), "\n")
+```
+
+### Fill genus-only photos from plot-level survey species
+
+The plot × species table from the vegetation survey (`spd_species`) is treated as the authoritative record of what taxa are present at each plot. When a photo was corrected only to genus level (`match_type == "genus_only"`) and the corresponding plot's survey list contains **exactly one** species in that genus, the photo's species epithet is filled from the survey record. When the survey list contains multiple species of the same genus at that plot, no fill is applied — the match is ambiguous. When the genus is absent from the plot's survey list entirely, no fill is applied. Filled rows are stamped `match_type = "spd_fill"` and `match_dist = NA` to keep them distinguishable from name-level fuzzy corrections; the survey record's capitalisation is preserved. Only `genus_only` rows are candidates — `excluded` and `no_match` classifications are never overwritten.
+
+```{r, message=FALSE, warning=FALSE}
+# Per-plot × genus lookup: how many distinct species does the survey record
+# under this genus at this plot, and (when exactly one) which species?
+spd_genus_lookup <- spd_species |>
+  group_by(plot, genus_l) |>
+  summarise(
+    n_species     = n_distinct(species_l),
+    spd_species   = first(species),
+    spd_species_l = first(species_l),
+    .groups       = "drop"
+  )
+
+# Snapshot the pre-fill genus_only count for reporting.
+n_genus_only_before <- sum(
+  photo_all2$match_type == "genus_only" & photo_all2$photo_type == "species",
+  na.rm = TRUE
+)
+
+photo_all2 <- photo_all2 |>
+  mutate(corrected_genus_l = str_to_lower(str_trim(corrected_genus))) |>
+  left_join(spd_genus_lookup,
+            by = c("plot" = "plot", "corrected_genus_l" = "genus_l")) |>
+  mutate(
+    # Fill applies only to genus_only rows where the plot's survey list has
+    # exactly one species in the matched genus.
+    spd_fill_applied = photo_type == "species" &
+                       !is.na(match_type) & match_type == "genus_only" &
+                       !is.na(n_species) & n_species == 1L &
+                       !is.na(spd_species_l),
+    corrected_species = if_else(spd_fill_applied, spd_species, corrected_species),
+    match_type        = if_else(spd_fill_applied, "spd_fill", match_type),
+    match_dist        = if_else(spd_fill_applied, NA_real_, match_dist)
+  ) |>
+  select(-corrected_genus_l, -n_species, -spd_species, -spd_species_l,
+         -spd_fill_applied)
+
+# Rebuild the per-plot photo species list so downstream joins see the fills.
+photo_species <- photo_all2 |>
+  st_drop_geometry() |>
+  filter(photo_type == "species", !is.na(corrected_genus), !is.na(plot)) |>
+  mutate(
+    genus_l   = str_to_lower(str_trim(corrected_genus)),
+    species_l = str_to_lower(str_trim(corrected_species))
+  ) |>
+  distinct(plot,
+           genus   = corrected_genus,
+           species = corrected_species,
+           genus_l, species_l)
+
+n_filled <- sum(photo_all2$match_type == "spd_fill", na.rm = TRUE)
+n_genus_only_after <- sum(
+  photo_all2$match_type == "genus_only" & photo_all2$photo_type == "species",
+  na.rm = TRUE
+)
+
+cat("Genus-only photo rows before spd_species fill:", n_genus_only_before, "\n")
+cat("  filled from spd_species (unique species in genus at plot):", n_filled, "\n")
+cat("  remaining genus_only (0 or >1 species in genus at plot):  ",
+    n_genus_only_after, "\n")
+cat("Unique plot × species combinations in photos (after spd_fill):",
+    nrow(photo_species), "\n")
+```
+
+The table below lists every photo whose species was filled from the plot-level survey record. Each fill represents a plot-scoped inference (not a string-distance match), so review is warranted before downstream use.
+
+```{r, message=FALSE, warning=FALSE}
+photo_all2 |>
+  st_drop_geometry() |>
+  filter(match_type == "spd_fill") |>
+  select(plot, botanist, filename,
+         photo_genus   = corrected_genus,
+         photo_species_original = species_clean,
+         filled_species = corrected_species) |>
+  arrange(plot, photo_genus, filename) |>
+  datatable(
+    caption = paste0(
+      "Photos with species filled from the plot-level survey list ",
+      "(match_type = 'spd_fill'; exactly one species of the matched genus ",
+      "recorded at that plot in spd_species)."
+    ),
+    options = list(pageLength = 20, scrollX = TRUE),
+    rownames = FALSE
+  )
+```
+
+### Species in survey data with no matched photo
+
+Surveyed species that have no corresponding photo after fuzzy correction. These represent taxa observed during the vegetation survey that were either not photographed during the rarefaction walk, or whose photo names deviate too far from the verified name to be auto-corrected (distance ≥ threshold).
+
+```{r, message=FALSE, warning=FALSE}
+spd_no_photo <- spd_species |>
+  anti_join(
+    photo_species,
+    by = c("plot", "genus_l", "species_l")
+  ) |>
+  select(plot, genus, species) |>
+  arrange(plot, genus, species)
+
+cat("Survey species with no matched photo:", nrow(spd_no_photo), "\n")
+
+spd_no_photo |>
+  group_by(plot) |>
+  summarise(
+    n_unmatched  = n(),
+    species_list = paste(paste(genus, species), collapse = "; "),
+    .groups = "drop"
+  ) |>
+  datatable(
+    caption = "Surveyed species with no matched botanist photo (by plot, after fuzzy correction)",
+    options = list(pageLength = 15, scrollX = TRUE),
+    rownames = FALSE
+  )
+```
+
+### Photos of species with no survey record
+
+Photographed species (after fuzzy correction) that have no corresponding survey record at the same plot. These may represent genuinely new detections, photos taken outside the plot boundary, or names that still deviate too far from any verified survey name to be auto-corrected.
+
+```{r, message=FALSE, warning=FALSE}
+photo_no_spd <- photo_species |>
+  anti_join(
+    spd_species,
+    by = c("plot", "genus_l", "species_l")
+  ) |>
+  select(plot, genus, species) |>
+  arrange(plot, genus, species)
+
+cat("Photo species with no matched survey record:", nrow(photo_no_spd), "\n")
+
+photo_no_spd |>
+  group_by(plot) |>
+  summarise(
+    n_unmatched  = n(),
+    species_list = paste(paste(genus, species), collapse = "; "),
+    .groups = "drop"
+  ) |>
+  datatable(
+    caption = "Photographed species with no matching survey record (by plot, after fuzzy correction)",
+    options = list(pageLength = 15, scrollX = TRUE),
+    rownames = FALSE
+  )
+```
+
+# Plot Identification Issues
+
+Photos were cross-referenced against the spatial plot database by comparing the plot number recorded in the botanist spreadsheet (`plot_number`) with the nearest-neighbour plot ID (`plot`) derived from GPS coordinates. Discrepancies between these two fields are tabulated below and may reflect data-entry errors, plot renumbering, or photos taken at an adjacent plot. Each case should be reviewed before downstream use.
+
+```{r, message=FALSE, warning=FALSE, echo=TRUE}
+photo_all2 |>
+  select(botanist, description, location, plot_number,
+         plot_closest, plot, dist_to_plot_m) |>
+  st_set_geometry(NULL) |>
+  mutate(
+    # BioSCape plot IDs carry a "T" prefix (e.g. "T001"); strip it before
+    # numeric comparison because botanists sometimes omit the prefix in the
+    # plot_number field.
+    plot_numeric         = as.numeric(gsub("T", "", plot)),
+    plot_closest_numeric = as.numeric(gsub("T", "", plot_closest))
+  ) |>
+  filter(is.na(plot_number) | plot_closest_numeric != plot_numeric) |>
+    group_by(plot) |>
+    summarize(n_photos=n(),
+              botanists = paste(unique(botanist),collapse=","),
+              plots = paste(unique(plot_number),collapse=", "),
+              plot_closest = paste(unique(plot_closest),collapse=", "),
+              mean_dist=mean(dist_to_plot_m)) |>
+    distinct()|>
+    datatable()
+
+```
+
+# Exploratory Summary
+
+## plot-level summary
+
+Per-plot summary statistics were computed, including counts of photos by type (species, rarefaction, plot overview, iNaturalist-flagged), the number of unique taxa photographed, rarefaction effort, survey dates, and GPS quality indicators. The summary table was written to disk for use in downstream analyses.
+
+```{r, message=FALSE, warning=FALSE, echo=TRUE}
+plot_summary <- photo_all2 |>
+  st_drop_geometry() |>
+  # Exclude photos with no matched plot before summarising
+  filter(!is.na(plot)) |>
+  group_by(plot) |>
+  summarise(
+    # Botanists who contributed photos to this plot
+    botanist = paste(sort(unique(botanist)), collapse = ", "),
+
+    # Total photo counts
+    photo_total        = n(),
+    photo_species      = sum(photo_type == "species", na.rm = TRUE),
+    photo_rarefaction  = sum(rarefaction_photo == 1, na.rm = TRUE),
+    photo_plot         = sum(photo_type == "plot", na.rm = TRUE),
+    # Photos flagged for iNaturalist upload
+    photo_inat         = sum(inat_photo == TRUE, na.rm = TRUE),
+    # Rarefaction duplicates (same individual re-photographed in sequence)
+    photo_rarefaction_duplicate = sum(
+      rarefaction_duplicate == TRUE, na.rm = TRUE
+    ),
+
+    # Species richness: distinct corrected name combinations from species-type
+    # photos (includes exact, fuzzy, and spd_fill resolutions; corrected_genus
+    # is NA for manually excluded entries, so the !is.na() guard drops those).
+    n_species = n_distinct(paste(
+      corrected_genus[photo_type == "species" & !is.na(corrected_genus)],
+      corrected_species[photo_type == "species" & !is.na(corrected_genus)]
+    )),
+
+    # Count of unique (non-duplicate) rarefaction photos — rarefaction_photo == 1
+    # flags a rarefaction photo; rarefaction_duplicate == TRUE flags re-photographs
+    # of the same individual that should not be double-counted.
+    n_rarefaction_photos = sum(
+      rarefaction_photo == 1 & !coalesce(rarefaction_duplicate, FALSE),
+      na.rm = TRUE
+    ),
+
+    # Survey effort: number of unique dates photos were taken
+    n_dates    = n_distinct(date),
+    date_first = min(date, na.rm = TRUE),
+    date_last  = max(date, na.rm = TRUE),
+
+    # Spatial QC: median distance from photos to the official plot centroid (m)
+    median_dist_to_plot_m = median(dist_to_plot_m, na.rm = TRUE),
+    # GPS precision reported by the device
+    mean_gps_error_m = round(mean(gps_position_error, na.rm = TRUE), 1),
+    .groups = "drop"
+  ) |>
+  # Replace -Inf / Inf that arise from max/min on all-NA groups
+  mutate(
+    across(where(is.numeric), \(x) ifelse(is.infinite(x), NA_real_, x))
+  )
+
+# Save to disk for use in downstream analyses
+plot_summary_file <- paste0("data/plot_summary_", tagdate, ".csv")
+write_csv(plot_summary, plot_summary_file)
+
+plot_summary |>
+  datatable(
+    caption = "Plot-level photo summary",
+    options = list(pageLength = 15, scrollX = TRUE),
+    rownames = FALSE
+  )
+```
+
+## Global photo diagnostics
+
+Dataset-level summary statistics were compiled to document overall data completeness, coverage, and quality. Key metrics include total photo count, number of matched plots, botanist contributions, temporal range, and mean per-plot photo density.
+
+```{r, message=FALSE, warning=FALSE, echo=TRUE}
+# Per-plot photo counts (needed for mean ± SD)
+per_plot_counts <- photo_all2 |>
+  st_drop_geometry() |>
+  filter(!is.na(plot)) |>
+  count(plot, name = "n_photos")
+
+per_plot_species_counts <- photo_all2 |>
+  st_drop_geometry() |>
+  filter(!is.na(plot), photo_type == "species") |>
+  count(plot, name = "n_species_photos")
+
+photo_diagnostics <- tibble(
+  Metric = c(
+    "Total photos (all sheets)",
+    "Total matched plots",
+    "Photos unmatched to any plot (> 1 km from nearest centroid)",
+    "Distinct botanists",
+    "Overall date range",
+    "Photos missing coordinates (dropped pre-analysis)",
+    "Rarefaction duplicate photos",
+    "Mean photos per plot (± SD)",
+    "Mean species photos per plot (± SD)",
+    "Total unique species across all plots (corrected names)"
+  ),
+  Value = c(
+    # Total rows in the dataset
+    nrow(st_drop_geometry(photo_all2)),
+
+    # Number of distinct plots with at least one matched photo
+    n_distinct(
+      photo_all2$plot[!is.na(photo_all2$plot)]
+    ),
+
+    # Photos where plot is NA because no centroid was within 1 km (see data load)
+    sum(is.na(photo_all2$plot)),
+
+    # Distinct botanists
+    n_distinct(photo_all2$botanist, na.rm = TRUE),
+
+    # Date range as a string
+    paste(
+      min(photo_all2$date, na.rm = TRUE),
+      "to",
+      max(photo_all2$date, na.rm = TRUE)
+    ),
+
+    # Note: photos without GPS were filtered out during loading; count is
+    # therefore zero post-filter but informative to document.
+    "Filtered during data load (GPS required)",
+
+    # Rarefaction duplicates flagged in the spreadsheet
+    sum(photo_all2$rarefaction_duplicate == TRUE, na.rm = TRUE),
+
+    # Mean ± SD photos per matched plot
+    paste0(
+      round(mean(per_plot_counts$n_photos), 1),
+      " ± ",
+      round(sd(per_plot_counts$n_photos), 1)
+    ),
+
+    # Mean ± SD species-type photos per matched plot
+    paste0(
+      round(mean(per_plot_species_counts$n_species_photos), 1),
+      " ± ",
+      round(sd(per_plot_species_counts$n_species_photos), 1)
+    ),
+
+    # Total unique corrected species names across all plots, species photos only
+    n_distinct(paste(
+      photo_all2$corrected_genus[photo_all2$photo_type == "species" &
+                                   !is.na(photo_all2$corrected_genus)],
+      photo_all2$corrected_species[photo_all2$photo_type == "species" &
+                                     !is.na(photo_all2$corrected_genus)]
+    ))
+  )
+)
+
+kable(photo_diagnostics, col.names = c("Metric", "Value"),
+      caption = "Global photo diagnostics")
+```
+
+## Upload photo dataset to GitHub release
+
+The processed photo metadata table was written to a versioned CSV file. The sf geometry column was dropped prior to writing, as GPS coordinates are retained as explicit `gps_latitude` and `gps_longitude` columns. The file was optionally uploaded to the corresponding GitHub release for archival and downstream use.
+
+```{r, message=FALSE, warning=FALSE, echo=TRUE}
+photo_all_file=paste0("data/vegphoto_all_",tagdate,".csv")
+# Drop sf geometry before writing — the geometry column serialises as WKT and is
+# not needed downstream (lat/lon columns are retained from the original data).
+st_drop_geometry(photo_all2) |>
+  write_csv(photo_all_file)
+
+# upload to github release is manual - run the pb_upload command if desired
+if (F) pb_upload(photo_all_file,tag=tag)
+
+```
+
+## Rename and organize all photos
+
+Photos were copied from the shared Google Drive source folders into a standardised local directory structure (`data/photo_out/<plot>/`), where unmatched photos (no GPS-derived plot assignment) are placed in a `00/` subfolder. Each file was renamed according to the convention `<plot>_<photo_type>_<YYYYMMDD_HHMMSS>_<botanist>_<original_stem>.jpeg`. The original filename stem keeps two photos taken at the same plot in the same second from overwriting each other once every file sits in the single folder the iNat uploader requires. Files are copied byte-for-byte with `file.copy()` to preserve all original EXIF metadata intact; `exiftool` is then used to *add* structured provenance fields on top without re-encoding the image. This chunk is set to `eval=F` and must be run manually after verifying the Google Drive paths. When it finishes, it writes `newfile` back onto `photo_all_file`.
+
+```{r, eval=F}
+
+photo_all3 <- photo_all2 |>
+  st_drop_geometry() |>
+  mutate(
+    # `plot` is the GPS-assigned plot id (for example T001). Unmatched photos
+    # go in folder "00".
+    plot_folder = if_else(is.na(plot), "00", plot),
+    botanist_safe = str_replace_all(botanist, "[^A-Za-z0-9]", "_"),
+    # Original stem, stripped of spaces, so two species photographed in the
+    # same second do not share a basename in the flat iNat folder.
+    file_stem = str_replace_all(
+      tools::file_path_sans_ext(filename),
+      "[^A-Za-z0-9]+", "_"
+    ),
+    newfile = paste0(
+      plot_folder, "/",
+      plot_folder, "_", photo_type, "_",
+      format(datetime, "%Y%m%d_%H%M%S"), "_",
+      botanist_safe, "_", file_stem, ".jpeg"
+    )
+  ) |>
+  group_by(newfile) |>
+  mutate(
+    newfile = if_else(
+      n() == 1L,
+      newfile,
+      str_replace(newfile, "\\.jpeg$", paste0("_", row_number(), ".jpeg"))
+    )
+  ) |>
+  ungroup()
+
+output_folder <- "data/photo_out/"
+
+purrr::walk(seq_len(nrow(photo_all3)), function(i) {
+
+  input_file  <- file.path(
+    "data/photos/Photos",
+    sub("BioSCape_Admin/VegPlots/Photos/", "", photo_all3$folder[i]),
+    photo_all3$filename[i]
+  )
+  output_file <- file.path(output_folder, photo_all3$newfile[i])
+
+  if (!dir.exists(dirname(output_file)))
+    dir.create(dirname(output_file), recursive = TRUE)
+
+  input_ext <- str_to_lower(tools::file_ext(input_file))
+
+  if (input_ext %in% c("heic", "heif")) {
+    # HEIC/HEIF must be converted to JPEG — re-encoding is unavoidable.
+    # After writing the pixel data, exiftool copies all original metadata
+    # (GPS, camera model, exposure, etc.) from the source HEIC back into the
+    # new JPEG so that provenance is preserved as completely as possible.
+    image_read(input_file) |>
+      image_write(output_file, format = "jpeg", quality = 95)
+    # Copy original EXIF/XMP/IPTC from the HEIC source into the new JPEG.
+    # The source path is wrapped in shQuote() because exiftool_call does not
+    # shell-quote elements of the args list (only fnames is quoted), and paths
+    # with spaces would otherwise be split by the shell into multiple tokens.
+    exiftool_call(
+      args = list(
+        "-overwrite_original",
+        paste0("-TagsFromFile=", shQuote(input_file)),
+        "-all:all"
+      ),
+      fnames = output_file
+    )
+  } else {
+    # For native JPEGs: copy byte-for-byte so ALL original EXIF/IPTC/XMP
+    # metadata (GPS, camera model, exposure settings, colour profile, etc.)
+    # is preserved without any re-encoding loss.
+    file.copy(input_file, output_file, overwrite = TRUE)
+  }
+
+  # Build the corrected binomial for the Subject tag; fall back to the original
+  # genus/species for plot-type photos where corrected_genus is not meaningful.
+  taxon_subject <- if_else(
+    photo_all3$photo_type[i] == "species" &
+      !is.na(photo_all3$corrected_genus[i]),
+    paste(photo_all3$corrected_genus[i], photo_all3$corrected_species[i]),
+    ""
+  )
+
+  # Use the matched plot ID for the title, falling back to "unmatched" for the
+  # "00" folder photos so the Title tag is still human-readable.
+  plot_label <- if_else(
+    is.na(photo_all3$plot[i]), "unmatched", photo_all3$plot[i]
+  )
+
+  # Sanitise free-text fields that may contain characters that would break the
+  # exiftool command string (double-quotes, backslashes, newlines).
+  sanitise <- function(x) str_replace_all(x, '["\\\\\n\r]', " ")
+
+  # Each field is written as a separate element so that field values containing
+  # spaces do not need additional quoting (exiftool treats each list element as
+  # one argument).
+  cmd <- list(
+    "-overwrite_original",
+
+    # XMP / IPTC provenance fields — structured, machine-readable ----------------
+    # Original source path so the renamed copy is always traceable.
+    paste0("-XMP:Source=",
+           sanitise(paste0(photo_all3$folder[i], "/", photo_all3$filename[i]))),
+    # Plot identifier as a dedicated XMP field for easy downstream filtering.
+    paste0("-XMP:PlotID=", plot_label),
+    # Botanist name as the EXIF Artist field (standard) and separately in XMP.
+    paste0("-EXIF:Artist=",        sanitise(photo_all3$botanist[i])),
+    paste0("-XMP:Creator=",        sanitise(photo_all3$botanist[i])),
+    # Free-text description recorded in the field spreadsheet.
+    paste0("-EXIF:ImageDescription=",
+           sanitise(photo_all3$description[i])),
+    # Species identification — use corrected name for Subject/Taxon tags.
+    paste0("-IPTC:ObjectName=",    sanitise(taxon_subject)),
+    paste0("-XMP:Subject=",        sanitise(taxon_subject)),
+    # Photo type (species / plot) for easy filtering.
+    paste0("-XMP:Type=",           photo_all3$photo_type[i]),
+    # Title with plot and photo-type context.
+    paste0("-EXIF:XPTitle=",
+           sanitise(paste0("BioSCape ", photo_all3$photo_type[i],
+                           " photo from plot ", plot_label))),
+    # GPS coordinates from the spreadsheet as a cross-check against device GPS.
+    paste0("-XMP:GPSLatitude=",    photo_all3$gps_latitude[i]),
+    paste0("-XMP:GPSLongitude=",   photo_all3$gps_longitude[i]),
+    # Copyright statement for the project.
+    "-EXIF:Copyright=BioSCape project",
+    "-XMP:Rights=BioSCape project",
+    # Keywords for general discovery.
+    paste0("-IPTC:Keywords=BioSCape"),
+    paste0("-IPTC:Keywords=", sanitise(photo_all3$botanist[i])),
+    paste0("-IPTC:Keywords=", plot_label)
+  )
+
+  exiftool_call(args = cmd, fnames = output_file)
+})
+
+# Persist newfile on the vegphoto CSV so iNat_prepare.qmd can name the media files.
+photo_all3 |>
+  select(-plot_folder, -botanist_safe, -file_stem) |>
+  write_csv(photo_all_file)
+cat("Wrote", photo_all_file, "with newfile populated.\n")
+```
+
+# Upload Photos to GitHub Release
+
+The renamed photo folder was optionally uploaded to the versioned GitHub release. This step is run manually to avoid unintentional large uploads.
+
+```{r, message=FALSE, warning=FALSE, echo=TRUE}
+# upload to github release is manual - run the pb_upload command if desired
+
+if (F) pb_upload(output_folder,tag=tag)
+
+```
+
