@@ -1,8 +1,7 @@
 # BioSCape Vegetation Plots, Cape Floristic Region, South Africa, 2023
-Jasper Slingsby, Ross Turner, Douglas Euston-Brown, Greg
+Adam M. Wilson, Jasper Slingsby, Ross Turner, Douglas Euston-Brown, Greg
 Nicolson, Steven Molteno, Stuart Hall, Paul Emms, Henry A. Frye, Phillip
-A. Townsend, Anabelle Cardoso, Erin Hestir, Brian Maitner, Adam M.
-Wilson
+A. Townsend, Anabelle Cardoso, Erin Hestir, Brian Maitner
 2026-10-07
 
 ## Introduction
@@ -117,7 +116,7 @@ Text missing values are `NA`. `record_id` is unique within each CSV.
 | bioscape_veg_quadrat_summary_v20261007.csv | 756 | 162298 | e7ac05ee4dca812dd6b1732b5b3846b79f3fd481cae29b43ec569c796273e5eb |
 | bioscape_veg_quadrat_species_v20261007.csv | 4795 | 781188 | 67f1cc3395fbd2a6bcfdab245821592a31759f603dad9632c548cf8606ea8ae3 |
 | bioscape_veg_line_intercepts_v20261007.csv | 8316 | 938734 | 0f14f16b252b6d3f0d85a08c88011348c384f0255e8d63001a4ba1bf99631b0c |
-| bioscape_veg_spatial_v20261007.gpkg | 499 | 2191360 | 59e4ef644de715beb9e03d83c4281daa822fae47542fdb98a91f6bf69b94e488 |
+| bioscape_veg_spatial_v20261007.gpkg | 499 | 2191360 | 3442006beba1ce256b52e0131b0b99d29ef202d8722ded4fde7b1ca84f4e9661 |
 
 - **Plot summary** (189 rows). One row per surveyed plot. Fractional
   cover, vegetation height, and soil depth are means of the four
