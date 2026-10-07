@@ -10,4 +10,5 @@ output/*
 index_cache
 .DS_Store
 webdata
-.Rhistory
+**/*.quarto_ipynb
+*.gpkg
