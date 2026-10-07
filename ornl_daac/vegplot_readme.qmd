@@ -1,7 +1,20 @@
 ---
 title: "BioSCape Vegetation Plots, Cape Floristic Region, South Africa, 2023"
-author: "Jasper Slingsby, Ross Turner, Douglas Euston-Brown, Greg Nicolson, Steven Molteno, Stuart Hall, Paul Emms,  Henry. A. Frye, Phillip. A. Townsend, Anabelle Cardoso, Erin Hestir, Brian Maitner, Adam M. Wilson"
-date: today
+author:
+  - Jasper Slingsby
+  - Ross Turner
+  - Douglas Euston-Brown
+  - Greg Nicolson
+  - Steven Molteno
+  - Stuart Hall
+  - Paul Emms
+  - Henry A. Frye
+  - Phillip A. Townsend
+  - Anabelle Cardoso
+  - Erin Hestir
+  - Brian Maitner
+  - Adam M. Wilson
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
 execute:
   echo: false
   warning: false
@@ -13,6 +26,22 @@ knitr:
     message: false
   opts_knit:
     root.dir: ".."
+format:
+  gfm:
+    output-file: README.md
+  pdf:
+    output-file: README.pdf
+    toc: true
+    number-sections: false
+    documentclass: article
+    fontsize: 10pt
+    geometry:
+      - margin=0.8in
+    colorlinks: true
+    keep-tex: false
+    include-in-header: pdf-header.tex
+    filters:
+      - pdf-tables.lua
 ---
 
 ```{r setup, echo=FALSE, warning=FALSE, message=FALSE}
@@ -22,14 +51,40 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 library(tidyverse)
 library(sf)
 library(knitr)
+library(kableExtra)
 
-source_tag <- "v20241104"
+# Markdown-friendly tables in HTML/gfm; scaled LaTeX tables in PDF.
+fmt_kable <- function(df, ...) {
+  if (isTRUE(knitr::is_latex_output())) {
+    knitr::kable(df, format = "latex", booktabs = TRUE, linesep = "", ...) |>
+      kableExtra::kable_styling(
+        latex_options = c("hold_position", "scale_down"),
+        font_size = 8
+      )
+  } else {
+    knitr::kable(df, format = "pipe", ...)
+  }
+}
+
+source_tag <- "v20261007"
 spatial_source_tag <- "v20261002"
-release_tag <- "v20261002"
-plot_summary_file <- "data/bioscape_veg_plot_summary_v20241104.csv"
-plot_species_file <- "data/bioscape_veg_plot_species_v20241104.csv"
-quadrat_summary_file <- "data/bioscape_veg_quadrat_summary_v20241104.csv"
-quadrat_species_file <- "data/bioscape_veg_quadrat_species_v20241104.csv"
+release_tag <- "v20261007"
+source_dir <- file.path("data", source_tag)
+plot_summary_file <- file.path(
+  source_dir, paste0("bioscape_veg_plot_summary_", source_tag, ".csv")
+)
+plot_species_file <- file.path(
+  source_dir, paste0("bioscape_veg_plot_species_", source_tag, ".csv")
+)
+quadrat_summary_file <- file.path(
+  source_dir, paste0("bioscape_veg_quadrat_summary_", source_tag, ".csv")
+)
+quadrat_species_file <- file.path(
+  source_dir, paste0("bioscape_veg_quadrat_species_", source_tag, ".csv")
+)
+line_intercepts_file <- file.path(
+  source_dir, paste0("bioscape_lineintercept_", source_tag, ".csv")
+)
 spatial_file <- "data/spatial/bioscape_veg_spatial_v20261002.gpkg"
 out_dir <- "ornl_daac"
 
@@ -48,6 +103,7 @@ quadrat_summary <- read_csv(
   col_types = cols(Date = col_datetime(format = ""))
 )
 quadrat_species <- read_csv(quadrat_species_file, show_col_types = FALSE)
+line_intercepts <- read_csv(line_intercepts_file, show_col_types = FALSE)
 
 # Plot centers, parking points, and plot polygons. Coordinates that
 # are not in the CSV files are in PlotCenters.
@@ -90,6 +146,39 @@ finish_table <- function(df) {
     ) |>
     mutate(record_id = row_number(), .before = 1)
 }
+
+# Keep iNaturalist observations as ids for ORNL (no embedded URLs).
+extract_inat_id <- function(x) {
+  str_match(x, "inaturalist\\.org/observations/([0-9]+)")[, 2]
+}
+
+strip_inat_url <- function(x) {
+  x |>
+    str_replace(
+      "https?://(www\\.)?inaturalist\\.org/observations/[0-9]+\\S*",
+      ""
+    ) |>
+    str_replace(regex("see link:\\s*$", ignore_case = TRUE), "") |>
+    str_squish() |>
+    na_if("")
+}
+
+# Drop personal names and phone numbers from access notes.
+redact_access_notes <- function(x) {
+  case_when(
+    str_detect(x, regex("Bo-radyn", ignore_case = TRUE)) ~
+      "contact landowners of Bo-radyn for access",
+    str_detect(x, regex("Meyer family|Elmarine", ignore_case = TRUE)) ~
+      "Contact landowner for access. Easy parking at plot.",
+    str_detect(x, "(?<![0-9])0[6-8][0-9]{7,9}(?![0-9])") ~
+      str_replace_all(
+        x,
+        "(?<![0-9])0[6-8][0-9]{7,9}(?![0-9])",
+        "[phone removed]"
+      ),
+    TRUE ~ x
+  )
+}
 ```
 
 ```{r}
@@ -97,13 +186,20 @@ finish_table <- function(df) {
 site_case <- quadrat_species |>
   distinct(Plot, species_site = SiteCode) |>
   inner_join(
-    quadrat_summary |> distinct(Plot, summary_site = SiteCode),
+    plot_summary |> distinct(Plot, summary_site = SiteCode),
     by = "Plot"
   ) |>
   filter(species_site != summary_site)
 
-n_urls_removed <- quadrat_species |>
-  filter(!is.na(NewSpecies), str_detect(NewSpecies, "http")) |>
+n_inat_quadrat <- quadrat_species |>
+  filter(
+    (!is.na(NewSpecies) & str_detect(NewSpecies, "inaturalist")) |
+      (!is.na(Comment) & str_detect(Comment, "inaturalist"))
+  ) |>
+  nrow()
+
+n_inat_line <- line_intercepts |>
+  filter(!is.na(Comments) & str_detect(Comments, "inaturalist")) |>
   nrow()
 
 n_quadrat_species_raw <- nrow(quadrat_species)
@@ -136,8 +232,26 @@ quadrat_species <- quadrat_species |>
     .after = Plot
   )
 
+line_intercepts <- line_intercepts |>
+  select(
+    -SiteCode, -SiteCode_Plot, -SiteCode_Plot_LineTransect
+  ) |>
+  left_join(site_lookup, by = "Plot") |>
+  rename(SiteCode = site_code_standard) |>
+  mutate(
+    SiteCode_Plot = paste(SiteCode, Plot, sep = "_"),
+    SiteCode_Plot_LineTransect = paste(
+      SiteCode, Plot, LineTransect, sep = "_"
+    )
+  ) |>
+  relocate(
+    SiteCode, SiteCode_Plot, SiteCode_Plot_LineTransect, LineTransect,
+    .after = Plot
+  )
+
 stopifnot(!any(is.na(plot_species$SiteCode)))
 stopifnot(!any(is.na(quadrat_species$SiteCode)))
+stopifnot(!any(is.na(line_intercepts$SiteCode)))
 
 # Identical species rows are repeats. Differing measurements are kept.
 quadrat_species <- distinct(quadrat_species)
@@ -149,7 +263,8 @@ plot_summary <- plot_summary |>
       Observer == "deb",
       "Douglas Euston-Brown",
       Observer
-    )
+    ),
+    Access_Notes = redact_access_notes(Access_Notes)
   )
 
 quadrat_summary <- quadrat_summary |>
@@ -164,7 +279,8 @@ quadrat_summary <- quadrat_summary |>
       sheet_name,
       "Ross01c|Ross01b|Ross01|Bio02|Bio03|Bio04"
     ),
-    PostFireAge_years = as.character(PostFireAge_years)
+    PostFireAge_years = as.character(PostFireAge_years),
+    Access_Notes = redact_access_notes(Access_Notes)
   )
 
 plot_species <- plot_species |>
@@ -176,12 +292,31 @@ quadrat_species <- quadrat_species |>
     Clonal_YesNo = as_yes_no(as.character(Clonal_YesNo)),
     NameCheck = as.character(NameCheck),
     NameCheck = if_else(NameCheck %in% c("#N/A", "NA"), NA, NameCheck),
-    NewSpecies = if_else(
-      !is.na(NewSpecies) & str_detect(NewSpecies, "http"),
-      NA_character_,
-      as.character(NewSpecies)
-    )
+    NewSpecies = as.character(NewSpecies),
+    Comment = as.character(Comment),
+    inat_id = coalesce(
+      extract_inat_id(NewSpecies),
+      extract_inat_id(Comment)
+    ),
+    NewSpecies = strip_inat_url(NewSpecies),
+    Comment = strip_inat_url(Comment)
   )
+
+line_intercepts <- line_intercepts |>
+  mutate(
+    NameCheck = as.character(NameCheck),
+    NameCheck = if_else(NameCheck %in% c("#N/A", "NA"), NA, NameCheck),
+    Comments = as.character(Comments),
+    inat_id = extract_inat_id(Comments),
+    Comments = strip_inat_url(Comments)
+  )
+
+plots_missing_line <- setdiff(plot_summary$Plot, line_intercepts$Plot)
+line_hits_per_plot <- line_intercepts |>
+  count(Plot, name = "n_hits")
+n_line_double_hit_plots <- line_hits_per_plot |>
+  filter(n_hits != 44) |>
+  nrow()
 
 plot_summary <- plot_summary |>
   arrange(Plot) |>
@@ -194,6 +329,9 @@ quadrat_summary <- quadrat_summary |>
   finish_table()
 quadrat_species <- quadrat_species |>
   arrange(Plot, Quadrant) |>
+  finish_table()
+line_intercepts <- line_intercepts |>
+  arrange(Plot, LineTransect, MetresAlongLine) |>
   finish_table()
 
 # GPS clock times become ISO 8601. The source text has no timezone.
@@ -241,6 +379,9 @@ quadrat_summary_out <- file.path(
 quadrat_species_out <- file.path(
   out_dir, paste0("bioscape_veg_quadrat_species_", release_tag, ".csv")
 )
+line_intercepts_out <- file.path(
+  out_dir, paste0("bioscape_veg_line_intercepts_", release_tag, ".csv")
+)
 spatial_out <- file.path(
   out_dir, paste0("bioscape_veg_spatial_", release_tag, ".gpkg")
 )
@@ -249,9 +390,10 @@ write_csv(plot_summary, plot_summary_out, na = "NA")
 write_csv(plot_species, plot_species_out, na = "NA")
 write_csv(quadrat_summary, quadrat_summary_out, na = "NA")
 write_csv(quadrat_species, quadrat_species_out, na = "NA")
+write_csv(line_intercepts, line_intercepts_out, na = "NA")
 
 if (file.exists(spatial_out)) {
-  file.remove(spatial_out)
+  invisible(file.remove(spatial_out))
 }
 st_write(centers, spatial_out, layer = "plot_centers", quiet = TRUE)
 st_write(parking, spatial_out, layer = "plot_parking", quiet = TRUE)
@@ -274,7 +416,16 @@ n_plots <- n_distinct(plot_summary$plot)
 n_quadrats <- nrow(quadrat_summary)
 n_plot_species <- nrow(plot_species)
 n_quadrat_species <- nrow(quadrat_species)
+n_line_intercepts <- nrow(line_intercepts)
+n_line_plots <- n_distinct(line_intercepts$plot)
 n_taxa <- n_distinct(quadrat_species$genus_species_combo)
+n_inat_ids <- sum(line_intercepts$inat_id != "NA") +
+  sum(quadrat_species$inat_id != "NA")
+plots_missing_line_note <- if (length(plots_missing_line) == 0) {
+  "none"
+} else {
+  paste(plots_missing_line, collapse = ", ")
+}
 
 survey_start <- format(min(quadrat_summary$date), "%Y-%m-%d")
 survey_end <- format(max(quadrat_summary$date), "%Y-%m-%d")
@@ -350,6 +501,7 @@ release_files <- c(
   plot_species_out,
   quadrat_summary_out,
   quadrat_species_out,
+  line_intercepts_out,
   spatial_out
 )
 file_info <- tibble(
@@ -359,6 +511,7 @@ file_info <- tibble(
     nrow(plot_species),
     nrow(quadrat_summary),
     nrow(quadrat_species),
+    nrow(line_intercepts),
     nrow(centers) + nrow(parking) + nrow(polygons)
   )
 ) |>
@@ -384,7 +537,11 @@ between `r survey_start` and `r survey_end` and divided into four
 quadrants (NE, NW, SE, SW). The product reports quadrant-level and
 plot-level fractional cover of bare soil, bare rock, dead vegetation,
 and live vegetation, together with species-level percent cover, stem
-counts, and canopy diameter for `r n_taxa` species. All species with at least 5% cover were included in the dataset, plus additional species where needed to make up 80% of the total cover. The data were collected in the field by botanists. 
+counts, and canopy diameter for `r n_taxa` species. Line-intercept
+hits along the north–south and west–east plot diameters are also
+included. All species with at least 5% cover were included in the
+dataset, plus additional species where needed to make up 80% of the
+total cover. The data were collected in the field by botanists.
 Plot-center coordinates are in the companion spatial file. 
 
 ## Dataset overview
@@ -447,7 +604,7 @@ tibble(
   `Northernmost latitude` = sprintf("%.4f", bbox[["ymax"]]),
   `Southernmost latitude` = sprintf("%.4f", bbox[["ymin"]])
 ) |>
-  kable(format = "pipe")
+  fmt_kable()
 ```
 
 **GCMD keywords:** BIOSPHERE > VEGETATION > VEGETATION COVER; BIOSPHERE >
@@ -456,16 +613,20 @@ AFRICA; platform FIELD SURVEYS; instrument GPS.
 
 ### File naming convention
 
-`bioscape_veg_{level}_{table}_v{YYYYMMDD}.csv` and
+`bioscape_veg_{level}_{table}_v{YYYYMMDD}.csv`,
+`bioscape_veg_line_intercepts_v{YYYYMMDD}.csv`, and
 `bioscape_veg_spatial_v{YYYYMMDD}.gpkg`
 
 - `level` is `plot` or `quadrat`.
 - `table` is `summary` (one row per location) or `species` (one row per
   taxon at that location).
+- `line_intercepts` is the point-intercept table along the plot
+  diameters.
 - `YYYYMMDD` is the date these version 1 files were written. This
   submission is `r release_tag`. The vegetation sources are
-  `r source_tag` and previously released to the team on GitHub. The spatial source is `r spatial_source_tag`.
-  Publication at ORNL is version 1. There is no earlier DOI.
+  `r source_tag` and previously released to the team on GitHub. The
+  spatial source is `r spatial_source_tag`. Publication at ORNL is
+  version 1. There is no earlier DOI.
 
 Names use lowercase letters, numbers, and underscores.
 
@@ -475,8 +636,19 @@ The CSV files have one header row. Numeric missing values are `-9999`.
 Text missing values are `NA`. `record_id` is unique within each CSV.
 
 ```{r}
-file_info |>
-  kable(format = "pipe")
+file_info_print <- file_info
+if (isTRUE(knitr::is_latex_output())) {
+  file_info_print <- file_info_print |>
+    mutate(
+      file = str_replace_all(file, "_", "\\\\_"),
+      sha256 = paste0("\\texttt{\\seqsplit{", sha256, "}}")
+    )
+  file_info_print |>
+    fmt_kable(escape = FALSE)
+} else {
+  file_info_print |>
+    fmt_kable()
+}
 ```
 
 - **Plot summary** (`r n_plots` rows). One row per surveyed plot.
@@ -494,6 +666,12 @@ file_info |>
   recorded in a quadrant, after identical rows were dropped. The plot
   species file is the aggregate of the source table, not of this file
   after duplicate removal.
+- **Line intercepts** (`r n_line_intercepts` rows). One row per
+  intercept hit (a plant or other cover type) at the left or right of
+  each 1 m mark on the north–south (`NS`) and west–east (`WE`)
+  diameters. Most plots have 44 hits (22 per transect). Plot
+  `r plots_missing_line_note` has no line-intercept rows.
+  `r n_line_double_hit_plots` plot has two hits at every mark.
 
 **Spatial file.** `r basename(spatial_out)` is a GeoPackage in WGS 84
 (EPSG:4326). Layers are `plot_centers`, `plot_parking`, and
@@ -533,20 +711,19 @@ file_info |>
 
 ```{r}
 quality_flags |>
-  kable(format = "pipe")
+  fmt_kable()
 ```
 
-`Boundary` means the plot was placed on the boundary of two vegetation types. The Townsend team then set up additional plots nearby to record the distinct communities (`pt_plot_a` through `pt_plot_d`). `Low vegetation` means cover was very low, and an alternative plot was often marked nearby where cover was higher. `Trampled` means previous visitors had trampled the plot. `Removed invasive` means a Townsend-team botanist removed an invasive individual that could have been present during the flights. `Grazing` means there was evidence of grazing. An invaded flag means invasive or alien plants were present, and a recent-burn flag means there was evidence of recent fire. Neither of those two labels is used in this file. `Other` and `Accessibility` are stored on some plots.
+`Boundary` means the plot was placed on the boundary of two vegetation types. The Townsend team then set up additional plots nearby to record the distinct communities (`pt_plot_a` through `pt_plot_d`). `Low vegetation` means cover was very low, and an alternative plot was often marked nearby where cover was higher. `Trampled` means previous visitors had trampled the plot. `Removed invasive` means a Townsend-team botanist removed an invasive individual that could have been present during the flights. `Grazing` means there was evidence of grazing. `Other` and `Accessibility` are stored on some plots.
 
 `plot_parking` columns are `bioscape_plot_id`, `region`, `name`, `description`, and `date_time`. `plot_polygons` columns are `bioscape_plot_id`, `region`, `botanist`, `name`, `description`, and `date_time`.
 
 **Code.** `workflow/plot_data_compile_xlsx.R` in
-<https://github.com/BioSCape-io/BioSCape-terrestrial>. Released tables:
-<https://github.com/BioSCape-io/BioSCape-terrestrial/releases/tag/v20241104>.
+<https://github.com/BioSCape-io/BioSCape-terrestrial>. 
 
 ### Data file properties
 
-Tabular CSV, plus one GeoPackage. The four tables have no map
+Tabular CSV, plus one GeoPackage. The five tables have no map
 projection. `r basename(spatial_out)` uses geographic WGS 84
 (EPSG:4326). Processing level: in situ field
 observations, with accepted names applied at compilation. These are not
@@ -557,11 +734,19 @@ a satellite Level 2–4 product.
 Shared codes:
 
 - `quadrant`: NE, NW, SE, SW.
+- `line_transect`: NS, WE.
+- `metres_along_line`: meter mark `0`–`10` plus `L` or `R` for the
+  left or right side of the transect rope (for example `0L`, `5R`).
+- `other_cover_type`: Bare soil, Bare rock, Bare soil and rock, Dead
+  plant, or Other.
 - `clonal` and `clonal_yes_no`: `yes`, `no`, or `NA`.
 - `seasonally_apparent`: `0`, `1`, or `-9999`.
 - `groundwater`: Well-drained, Impeded drainage, Seepage, Swamp, Stream
   bank, Suurvlakte, or `NA`.
 - `sampled` on the plot summary is `1` for every row.
+- `inat_id`: iNaturalist observation id. Reconstruct the observation
+  page as
+  <https://www.inaturalist.org/observations/>`{inat_id}`.
 
 **`r basename(plot_summary_out)`**
 
@@ -650,7 +835,7 @@ Euston-Brown, Steven Molteno, Stuart Hall, and Paul Emms.
 | subspecies_or_variant | | Subspecies or variant when one was recorded. |
 | genus_species_combo | | Genus and species label. |
 | name_check | | Name-check code. `NA` on `r namecheck_missing` of `r n_quadrat_species` rows. |
-| new_species | | Field note for a new or uncertain taxon. URLs were removed. Remaining values can be notes or times. |
+| new_species | | Field note for a new or uncertain taxon. iNaturalist URLs are stored as `inat_id`. Remaining values can be notes or times. |
 | clonal_yes_no | | `yes`, `no`, or `NA`. |
 | mean_canopy_diameter_cm | cm | Canopy diameter of the taxon in the quadrant. Missing: `-9999`. |
 | abundance_alive_count | count | Live individuals. Missing: `-9999`. |
@@ -658,11 +843,32 @@ Euston-Brown, Steven Molteno, Stuart Hall, and Paul Emms.
 | percent_cover_dead | percent | Dead cover in the quadrant. Missing: `-9999`. |
 | abundance_dead_count | count | Dead individuals. Missing: `-9999`. |
 | seasonally_apparent | | `0`, `1`, or `-9999`. |
-| comment | | Note on the taxon in that quadrant. |
+| comment | | Note on the taxon in that quadrant. iNaturalist URLs are stored as `inat_id`; other residual text is kept. |
 | clonal | | `yes`, `no`, or `NA`. |
 | taxon | | Same label as `genus_species_combo`. |
 | old_plot | | Plot number before Swartberg renumbering. Missing: `-9999`. |
+| inat_id | | iNaturalist observation id extracted from `new_species` or `comment`. Missing: `NA`. |
 
+**`r basename(line_intercepts_out)`**
+
+| Variable | Units | Description |
+| --- | --- | --- |
+| record_id | | Unique row number in this file. |
+| plot | | Plot code. |
+| site_code | | Survey area name. |
+| site_code_plot | | Site and plot joined by `_`. |
+| site_code_plot_line_transect | | Site, plot, and transect joined by `_`. |
+| line_transect | | NS or WE. |
+| metres_along_line | | Meter mark and side of the rope, for example `0L` or `10R`. |
+| accepted_genus | | Accepted genus when the hit is a plant. |
+| accepted_species | | Accepted species epithet. `NA` when the record is genus only or a non-plant hit. |
+| subspecies_or_variant | | Subspecies or variant when one was recorded. |
+| genus_species_combo | | Genus and species label. `NA` for non-plant hits. |
+| name_check | | Name-check code. Missing: `NA`. |
+| other_cover_type | | Non-plant cover at the intercept when no taxon was recorded, or when both were noted. |
+| comments | | Free-text note. iNaturalist URLs are stored as `inat_id`. |
+| old_plot | | Plot number before Swartberg renumbering. Missing: `-9999`. |
+| inat_id | | iNaturalist observation id extracted from `comments`. Missing: `NA`. |
 
 ## Application and derivation
 
@@ -672,7 +878,8 @@ composition and structure with the campaign airborne imaging
 spectroscopy and lidar (AVIRIS-NG, PRISM, LVIS, and HyTES) over the
 Greater Cape Floristic Region (Cardoso et al. 2025). Use the plot
 species table for one cover and count per taxon per plot. Use the
-quadrat tables when the within-plot measurements matter. The
+quadrat tables when the within-plot measurements matter. Use the line
+intercepts table for point hits along the plot diameters. The
 woody-invasive plots (ORNL DAAC
 <https://doi.org/10.3334/ORNLDAAC/2511>) were sited near this network
 and are comparable only after that placement difference is taken into
@@ -689,7 +896,7 @@ sum to 100:
 cover_off |>
   select(site_code_plot_quadrant, total_cover_check) |>
   arrange(site_code_plot_quadrant) |>
-  kable(format = "pipe")
+  fmt_kable()
 ```
 
 Version 1 changes from the source tables:
@@ -697,7 +904,12 @@ Version 1 changes from the source tables:
 - Site codes on `r nrow(site_case)` plots in the species tables were
   replaced with the plot-summary spelling so `site_code_plot` joins.
 - `r n_exact_dups_removed` identical quadrat-species rows were removed.
-- `r n_urls_removed` web address in `new_species` was removed.
+- iNaturalist observation URLs in `new_species`, `comment`, and line
+  `comments` were moved to `inat_id` (`r n_inat_quadrat` quadrat-species
+  rows and `r n_inat_line` line-intercept rows had an iNaturalist URL).
+  Residual free-text notes were kept. Non-iNaturalist URLs were left in
+  place.
+- Personal contact details in `access_notes` were redacted.
 - The observer value `deb` and the spatial botanist name
   `Doug Euston-Brown` are stored as Douglas Euston-Brown.
 - Spatial source `r spatial_source_tag` drops the duplicate T114
@@ -705,6 +917,11 @@ Version 1 changes from the source tables:
   links T183 to associated plot `pt183`, stores `pt_plot_d` as one
   column, and uses real missing values instead of the text `NA` in
   Townsend plot labels.
+
+Relative to the data pre-release `v20241104`, the
+`r source_tag` sources rename T222 `Senecio subcanescens` to
+`Senecio rigidus` and set T091 `Metalasia densa` live abundance from
+20 to 1 (with a note on the inconsistent cover versus count).
 
 `r nrow(dup_taxon)` quadrat-by-taxon keys still occur more than once
 because the cover or count differed. `record_id` keeps those rows
@@ -715,11 +932,14 @@ those repeated measurements are included in its cover and counts.
 dup_taxon |>
   arrange(site_code_plot_quadrant, genus_species_combo) |>
   select(site_code_plot_quadrant, genus_species_combo, n) |>
-  kable(format = "pipe")
+  fmt_kable()
 ```
 
-`post_fire_age_years` remains text. `name_check` is the code written on
-the field sheet; the authority list is not in these tables.
+Line intercepts are present for `r n_line_plots` of `r n_plots` plots
+(missing: `r plots_missing_line_note`). Plot T096 has two hits at every
+transect mark (88 rows). `post_fire_age_years` remains text.
+`name_check` is the code written on the field sheet; the authority list
+is not in these tables.
 
 ## Data acquisition, materials, and methods
 
@@ -733,6 +953,12 @@ percent cover, live and dead counts, and canopy diameter. Centers were
 located with a Trimble GPS. The coordinate values are in the
 `plot_centers` layer of `r basename(spatial_out)`.
 
+Two perpendicular line transects cross at the plot center along the
+north–south (`NS`) and west–east (`WE`) diameters. At each 1 m mark from
+0 to 10 m, the botanist recorded the plant or other cover immediately
+left (`L`) and right (`R`) of the rope from a canopy view. Those hits
+are stored in the line-intercepts table.
+
 The version 1 files were written by this document. Column names are
 snake case. Numeric gaps are `-9999` and text gaps are `NA`. Survey
 dates are `YYYY-MM-DD`. GPS times are `YYYY-MM-DDThh:mm:ss` with the
@@ -741,12 +967,14 @@ Clonal codes are `yes` or `no`. `old_plot` is the plot number before
 renumbering.
 
 Field records were kept in six Google Sheets workbooks (Ross01,
-Ross01b, Ross01c, Bio02, Bio03, Bio04) and downloaded on 2024-11-04.
-`workflow/plot_data_compile_xlsx.R` stacked the SiteData tabs and the
-plot tabs, and rebuilt the plot and quadrant identifiers. Swartberg plot numbers
-that collided with numbers used at other sites were renumbered. The
-previous number is `old_plot`. The source script maps Swartberg 20 to T110, 22
-to T012, 23 to T013, and 24 to T014.
+Ross01b, Ross01c, Bio02, Bio03, Bio04). The `r source_tag` compile was
+built from workbook downloads dated 2026-10-07.
+`workflow/plot_data_compile_xlsx.R` stacked the SiteData tabs, plot
+tabs, and line-intercept tabs, and rebuilt the plot and quadrant
+identifiers. Swartberg plot numbers that collided with numbers used at
+other sites were renumbered. The previous number is `old_plot`. The
+source script maps Swartberg 20 to T110, 22 to T012, 23 to T013, and 24
+to T014.
 
 Plot summary cover, height, and soil depth are the mean of the four
 quadrants. Plot species live and dead cover are the sum of that taxon's
@@ -785,13 +1013,14 @@ This is the first submission of these tables to ORNL DAAC. There is no prior DOI
 #| include: false
 
 # Publish the version 1 files to GitHub. Render this document first so
-# README.md exists, then run this chunk with the working directory set
+# README.md and README.pdf exist (Quarto: both formats; or render each
+# with rmarkdown), then run this chunk with the working directory set
 # to the repository root. A normal render does not upload.
 library(piggyback)
 
 github_repo <- "BioSCape-io/BioSCape-terrestrial"
 github_tag <- "ORNLv1"
-release_tag <- "v20261002"
+release_tag <- "v20261007"
 github_dir <- "ornl_daac"
 github_files <- c(
   file.path(
@@ -812,9 +1041,14 @@ github_files <- c(
   ),
   file.path(
     github_dir,
+    paste0("bioscape_veg_line_intercepts_", release_tag, ".csv")
+  ),
+  file.path(
+    github_dir,
     paste0("bioscape_veg_spatial_", release_tag, ".gpkg")
   ),
-  file.path(github_dir, "README.md")
+  file.path(github_dir, "README.md"),
+  file.path(github_dir, "README.pdf")
 )
 stopifnot(all(file.exists(github_files)))
 
@@ -829,40 +1063,12 @@ if (!github_tag %in% pb_releases(repo = github_repo)$tag_name) {
   memoise::forget(piggyback::pb_info)
 }
 
-pb_upload(
-  file = github_files[1],
-  repo = github_repo,
-  tag = github_tag,
-  overwrite = TRUE
-)
-pb_upload(
-  file = github_files[2],
-  repo = github_repo,
-  tag = github_tag,
-  overwrite = TRUE
-)
-pb_upload(
-  file = github_files[3],
-  repo = github_repo,
-  tag = github_tag,
-  overwrite = TRUE
-)
-pb_upload(
-  file = github_files[4],
-  repo = github_repo,
-  tag = github_tag,
-  overwrite = TRUE
-)
-pb_upload(
-  file = github_files[5],
-  repo = github_repo,
-  tag = github_tag,
-  overwrite = TRUE
-)
-pb_upload(
-  file = github_files[6],
-  repo = github_repo,
-  tag = github_tag,
-  overwrite = TRUE
-)
+for (path in github_files) {
+  pb_upload(
+    file = path,
+    repo = github_repo,
+    tag = github_tag,
+    overwrite = TRUE
+  )
+}
 ```

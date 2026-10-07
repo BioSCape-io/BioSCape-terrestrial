@@ -1,11 +1,9 @@
 BioSCape Vegetation Plots, Cape Floristic Region, South Africa, 2023
 ================
-Jasper Slingsby, Ross Turner, Douglas Euston-Brown, Greg Nicolson,
-Steven Molteno, Stuart Hall, Paul Emms, Henry. A. Frye, Phillip. A.
-Townsend, Anabelle Cardoso, Erin Hestir, Brian Maitner, Adam M. Wilson
-today
-
-    ## [1] TRUE
+Jasper SlingsbyRoss TurnerDouglas Euston-BrownGreg NicolsonSteven
+MoltenoStuart HallPaul EmmsHenry A. FryePhillip A. TownsendAnabelle
+CardosoErin HestirBrian MaitnerAdam M. Wilson
+2026-10-07
 
 ## Introduction
 
@@ -19,10 +17,12 @@ between 2023-05-03 and 2023-11-01 and divided into four quadrants (NE,
 NW, SE, SW). The product reports quadrant-level and plot-level
 fractional cover of bare soil, bare rock, dead vegetation, and live
 vegetation, together with species-level percent cover, stem counts, and
-canopy diameter for 709 species. All species with at least 5% cover were
-included in the dataset, plus additional species where needed to make up
-80% of the total cover. The data were collected in the field by
-botanists. Plot-center coordinates are in the companion spatial file.
+canopy diameter for 709 species. Line-intercept hits along the
+north–south and west–east plot diameters are also included. All species
+with at least 5% cover were included in the dataset, plus additional
+species where needed to make up 80% of the total cover. The data were
+collected in the field by botanists. Plot-center coordinates are in the
+companion spatial file.
 
 ## Dataset overview
 
@@ -64,7 +64,7 @@ Slingsby.
 Eastern Cape, South Africa. Site codes in the plot summary: agulhas,
 anysberg, bainskloof, bavianskloof, bontebok, capepoint, cederberg,
 dehoop, franschoekpass, gardenroute, grootbos, grootwinterhoek,
-Hawequas, houwhoekpass, kogelberg, langeberg, outeniqua, rooiberg,
+hawequas, houwhoekpass, kogelberg, langeberg, outeniqua, rooiberg,
 swartberg, viljoenspass, vrolijkheid, westcoast.
 
 **Spatial resolution:** One circular vegetation plot with a diameter of
@@ -77,7 +77,7 @@ one date.
 **Temporal resolution:** One sample per plot.
 
 **Study area:** Bounding box of the `plot_centers` layer in
-bioscape_veg_spatial_v20261002.gpkg, WGS 84 decimal degrees.
+bioscape_veg_spatial_v20261007.gpkg, WGS 84 decimal degrees.
 
 | Site | Westernmost longitude | Easternmost longitude | Northernmost latitude | Southernmost latitude |
 |:---|:---|:---|:---|:---|
@@ -89,14 +89,17 @@ BIOSPHERE \> VEGETATION \> VEGETATION SPECIES; AFRICA \> SOUTHERN AFRICA
 
 ### File naming convention
 
-`bioscape_veg_{level}_{table}_v{YYYYMMDD}.csv` and
+`bioscape_veg_{level}_{table}_v{YYYYMMDD}.csv`,
+`bioscape_veg_line_intercepts_v{YYYYMMDD}.csv`, and
 `bioscape_veg_spatial_v{YYYYMMDD}.gpkg`
 
 - `level` is `plot` or `quadrat`.
 - `table` is `summary` (one row per location) or `species` (one row per
   taxon at that location).
+- `line_intercepts` is the point-intercept table along the plot
+  diameters.
 - `YYYYMMDD` is the date these version 1 files were written. This
-  submission is v20261002. The vegetation sources are v20241104 and
+  submission is v20261007. The vegetation sources are v20261007 and
   previously released to the team on GitHub. The spatial source is
   v20261002. Publication at ORNL is version 1. There is no earlier DOI.
 
@@ -109,11 +112,12 @@ Text missing values are `NA`. `record_id` is unique within each CSV.
 
 | file | rows | bytes | sha256 |
 |:---|---:|---:|:---|
-| bioscape_veg_plot_summary_v20261002.csv | 189 | 22006 | 5616bb12963f6ceb35978c0eadc4971296fc40d571ca714e5f52f792d095606e |
-| bioscape_veg_plot_species_v20261002.csv | 1974 | 207912 | 63d79b3112a0ff0a4e88f46dd8d5b4487d94ba9b60e463fd06b015155e7abba2 |
-| bioscape_veg_quadrat_summary_v20261002.csv | 756 | 162343 | 2afa3f25a04ce9d0e2697f7f8c5bd8676bb87c04fa60c91e65f92fc6eb72d09d |
-| bioscape_veg_quadrat_species_v20261002.csv | 4795 | 768295 | 81fc2914fb2bbb0372805af93cbb50755911d55b97bb678161ea597a38db1357 |
-| bioscape_veg_spatial_v20261002.gpkg | 499 | 2191360 | f9825ef6bec6063253a11fa080d055a62f6248e19971d3dc901f94be3f0014f7 |
+| bioscape_veg_plot_summary_v20261007.csv | 189 | 22006 | 4005ed742f00b909aa7c7c4a89937cc222a6d48b2718d61e3010c2a4a4aaffc2 |
+| bioscape_veg_plot_species_v20261007.csv | 1974 | 207902 | f3b4f453fbc9dd53f48b1e23d3735e04fb3725801e6cb6747d6f88c7404599ea |
+| bioscape_veg_quadrat_summary_v20261007.csv | 756 | 162269 | 98c2d1b63deb05e4533f405b6e93a291e5ea84f5137e1ca7a5fa3c00516da1e7 |
+| bioscape_veg_quadrat_species_v20261007.csv | 4795 | 781188 | 67f1cc3395fbd2a6bcfdab245821592a31759f603dad9632c548cf8606ea8ae3 |
+| bioscape_veg_line_intercepts_v20261007.csv | 8316 | 938734 | 0f14f16b252b6d3f0d85a08c88011348c384f0255e8d63001a4ba1bf99631b0c |
+| bioscape_veg_spatial_v20261007.gpkg | 499 | 2191360 | 81c4ea9fb850fff1ad96b0059c5c5b957ffd0ccc91ab287ccaefb084fa5e0f17 |
 
 - **Plot summary** (189 rows). One row per surveyed plot. Fractional
   cover, vegetation height, and soil depth are means of the four
@@ -130,8 +134,13 @@ Text missing values are `NA`. `record_id` is unique within each CSV.
   quadrant, after identical rows were dropped. The plot species file is
   the aggregate of the source table, not of this file after duplicate
   removal.
+- **Line intercepts** (8316 rows). One row per intercept hit (a plant or
+  other cover type) at the left or right of each 1 m mark on the
+  north–south (`NS`) and west–east (`WE`) diameters. Most plots have 44
+  hits (22 per transect). Plot T086 has no line-intercept rows. 1 plot
+  has two hits at every mark.
 
-**Spatial file.** bioscape_veg_spatial_v20261002.gpkg is a GeoPackage in
+**Spatial file.** bioscape_veg_spatial_v20261007.gpkg is a GeoPackage in
 WGS 84 (EPSG:4326). Layers are `plot_centers`, `plot_parking`, and
 `plot_polygons`.
 
@@ -184,11 +193,8 @@ the distinct communities (`pt_plot_a` through `pt_plot_d`).
 often marked nearby where cover was higher. `Trampled` means previous
 visitors had trampled the plot. `Removed invasive` means a Townsend-team
 botanist removed an invasive individual that could have been present
-during the flights. `Grazing` means there was evidence of grazing. An
-invaded flag means invasive or alien plants were present, and a
-recent-burn flag means there was evidence of recent fire. Neither of
-those two labels is used in this file. `Other` and `Accessibility` are
-stored on some plots.
+during the flights. `Grazing` means there was evidence of grazing.
+`Other` and `Accessibility` are stored on some plots.
 
 `plot_parking` columns are `bioscape_plot_id`, `region`, `name`,
 `description`, and `date_time`. `plot_polygons` columns are
@@ -196,13 +202,12 @@ stored on some plots.
 `date_time`.
 
 **Code.** `workflow/plot_data_compile_xlsx.R` in
-<https://github.com/BioSCape-io/BioSCape-terrestrial>. Released tables:
-<https://github.com/BioSCape-io/BioSCape-terrestrial/releases/tag/v20241104>.
+<https://github.com/BioSCape-io/BioSCape-terrestrial>.
 
 ### Data file properties
 
-Tabular CSV, plus one GeoPackage. The four tables have no map
-projection. bioscape_veg_spatial_v20261002.gpkg uses geographic WGS 84
+Tabular CSV, plus one GeoPackage. The five tables have no map
+projection. bioscape_veg_spatial_v20261007.gpkg uses geographic WGS 84
 (EPSG:4326). Processing level: in situ field observations, with accepted
 names applied at compilation. These are not a satellite Level 2–4
 product.
@@ -212,13 +217,20 @@ product.
 Shared codes:
 
 - `quadrant`: NE, NW, SE, SW.
+- `line_transect`: NS, WE.
+- `metres_along_line`: meter mark `0`–`10` plus `L` or `R` for the left
+  or right side of the transect rope (for example `0L`, `5R`).
+- `other_cover_type`: Bare soil, Bare rock, Bare soil and rock, Dead
+  plant, or Other.
 - `clonal` and `clonal_yes_no`: `yes`, `no`, or `NA`.
 - `seasonally_apparent`: `0`, `1`, or `-9999`.
 - `groundwater`: Well-drained, Impeded drainage, Seepage, Swamp, Stream
   bank, Suurvlakte, or `NA`.
 - `sampled` on the plot summary is `1` for every row.
+- `inat_id`: iNaturalist observation id. Reconstruct the observation
+  page as <https://www.inaturalist.org/observations/>`{inat_id}`.
 
-**bioscape_veg_plot_summary_v20261002.csv**
+**bioscape_veg_plot_summary_v20261007.csv**
 
 | Variable | Units | Description |
 |----|----|----|
@@ -242,7 +254,7 @@ This file has no survey date. Take `date` from the quadrat summary,
 joining on `plot`. Field surveys were recorded by Ross Turner, Douglas
 Euston-Brown, Steven Molteno, Stuart Hall, and Paul Emms.
 
-**bioscape_veg_plot_species_v20261002.csv**
+**bioscape_veg_plot_species_v20261007.csv**
 
 | Variable | Units | Description |
 |----|----|----|
@@ -262,7 +274,7 @@ Euston-Brown, Steven Molteno, Stuart Hall, and Paul Emms.
 | clonal |  | `yes`, `no`, or `NA`. |
 | seasonally_apparent |  | Maximum of the quadrant values. Missing: `-9999`. |
 
-**bioscape_veg_quadrat_summary_v20261002.csv**
+**bioscape_veg_quadrat_summary_v20261007.csv**
 
 | Variable | Units | Description |
 |----|----|----|
@@ -290,7 +302,7 @@ Euston-Brown, Steven Molteno, Stuart Hall, and Paul Emms.
 | sheet_name |  | Source workbook: Ross01, Ross01b, Ross01c, Bio02, Bio03, or Bio04. |
 | old_plot |  | Plot number before the Swartberg renumbering in Methods. Missing: `-9999`. |
 
-**bioscape_veg_quadrat_species_v20261002.csv**
+**bioscape_veg_quadrat_species_v20261007.csv**
 
 | Variable | Units | Description |
 |----|----|----|
@@ -304,8 +316,8 @@ Euston-Brown, Steven Molteno, Stuart Hall, and Paul Emms.
 | accepted_species |  | Accepted species epithet. `NA` when the record is genus only. |
 | subspecies_or_variant |  | Subspecies or variant when one was recorded. |
 | genus_species_combo |  | Genus and species label. |
-| name_check |  | Name-check code. `NA` on 167 of 4795 rows. |
-| new_species |  | Field note for a new or uncertain taxon. URLs were removed. Remaining values can be notes or times. |
+| name_check |  | Name-check code. `NA` on 164 of 4795 rows. |
+| new_species |  | Field note for a new or uncertain taxon. iNaturalist URLs are stored as `inat_id`. Remaining values can be notes or times. |
 | clonal_yes_no |  | `yes`, `no`, or `NA`. |
 | mean_canopy_diameter_cm | cm | Canopy diameter of the taxon in the quadrant. Missing: `-9999`. |
 | abundance_alive_count | count | Live individuals. Missing: `-9999`. |
@@ -313,10 +325,32 @@ Euston-Brown, Steven Molteno, Stuart Hall, and Paul Emms.
 | percent_cover_dead | percent | Dead cover in the quadrant. Missing: `-9999`. |
 | abundance_dead_count | count | Dead individuals. Missing: `-9999`. |
 | seasonally_apparent |  | `0`, `1`, or `-9999`. |
-| comment |  | Note on the taxon in that quadrant. |
+| comment |  | Note on the taxon in that quadrant. iNaturalist URLs are stored as `inat_id`; other residual text is kept. |
 | clonal |  | `yes`, `no`, or `NA`. |
 | taxon |  | Same label as `genus_species_combo`. |
 | old_plot |  | Plot number before Swartberg renumbering. Missing: `-9999`. |
+| inat_id |  | iNaturalist observation id extracted from `new_species` or `comment`. Missing: `NA`. |
+
+**bioscape_veg_line_intercepts_v20261007.csv**
+
+| Variable | Units | Description |
+|----|----|----|
+| record_id |  | Unique row number in this file. |
+| plot |  | Plot code. |
+| site_code |  | Survey area name. |
+| site_code_plot |  | Site and plot joined by `_`. |
+| site_code_plot_line_transect |  | Site, plot, and transect joined by `_`. |
+| line_transect |  | NS or WE. |
+| metres_along_line |  | Meter mark and side of the rope, for example `0L` or `10R`. |
+| accepted_genus |  | Accepted genus when the hit is a plant. |
+| accepted_species |  | Accepted species epithet. `NA` when the record is genus only or a non-plant hit. |
+| subspecies_or_variant |  | Subspecies or variant when one was recorded. |
+| genus_species_combo |  | Genus and species label. `NA` for non-plant hits. |
+| name_check |  | Name-check code. Missing: `NA`. |
+| other_cover_type |  | Non-plant cover at the intercept when no taxon was recorded, or when both were noted. |
+| comments |  | Free-text note. iNaturalist URLs are stored as `inat_id`. |
+| old_plot |  | Plot number before Swartberg renumbering. Missing: `-9999`. |
+| inat_id |  | iNaturalist observation id extracted from `comments`. Missing: `NA`. |
 
 ## Application and derivation
 
@@ -326,7 +360,8 @@ composition and structure with the campaign airborne imaging
 spectroscopy and lidar (AVIRIS-NG, PRISM, LVIS, and HyTES) over the
 Greater Cape Floristic Region (Cardoso et al. 2025). Use the plot
 species table for one cover and count per taxon per plot. Use the
-quadrat tables when the within-plot measurements matter. The
+quadrat tables when the within-plot measurements matter. Use the line
+intercepts table for point hits along the plot diameters. The
 woody-invasive plots (ORNL DAAC <https://doi.org/10.3334/ORNLDAAC/2511>)
 were sited near this network and are comparable only after that
 placement difference is taken into account.
@@ -357,16 +392,25 @@ sum to 100:
 
 Version 1 changes from the source tables:
 
-- Site codes on 12 plots in the species tables were replaced with the
+- Site codes on 0 plots in the species tables were replaced with the
   plot-summary spelling so `site_code_plot` joins.
 - 1 identical quadrat-species rows were removed.
-- 1 web address in `new_species` was removed.
+- iNaturalist observation URLs in `new_species`, `comment`, and line
+  `comments` were moved to `inat_id` (37 quadrat-species rows and 20
+  line-intercept rows had an iNaturalist URL). Residual free-text notes
+  were kept. Non-iNaturalist URLs were left in place.
+- Personal contact details in `access_notes` were redacted.
 - The observer value `deb` and the spatial botanist name
   `Doug Euston-Brown` are stored as Douglas Euston-Brown.
 - Spatial source v20261002 drops the duplicate T114 center and its
   location flag, sets T074 region to `CapePoint`, links T183 to
   associated plot `pt183`, stores `pt_plot_d` as one column, and uses
   real missing values instead of the text `NA` in Townsend plot labels.
+
+Relative to the data pre-release `v20241104`, the v20261007 sources
+rename T222 `Senecio subcanescens` to `Senecio rigidus` and set T091
+`Metalasia densa` live abundance from 20 to 1 (with a note on the
+inconsistent cover versus count).
 
 13 quadrat-by-taxon keys still occur more than once because the cover or
 count differed. `record_id` keeps those rows distinct. The plot species
@@ -389,6 +433,8 @@ are included in its cover and counts.
 | rooiberg_T003_SW        | Drosanthemum                 |   2 |
 | rooiberg_T245_SW        | Agathosma mundtii            |   2 |
 
+Line intercepts are present for 188 of 189 plots (missing: T086). Plot
+T096 has two hits at every transect mark (88 rows).
 `post_fire_age_years` remains text. `name_check` is the code written on
 the field sheet; the authority list is not in these tables.
 
@@ -402,7 +448,13 @@ rock, dead vegetation, and live vegetation; vegetation height; soil
 depth; drainage; and, for each vascular plant taxon, live and dead
 percent cover, live and dead counts, and canopy diameter. Centers were
 located with a Trimble GPS. The coordinate values are in the
-`plot_centers` layer of bioscape_veg_spatial_v20261002.gpkg.
+`plot_centers` layer of bioscape_veg_spatial_v20261007.gpkg.
+
+Two perpendicular line transects cross at the plot center along the
+north–south (`NS`) and west–east (`WE`) diameters. At each 1 m mark from
+0 to 10 m, the botanist recorded the plant or other cover immediately
+left (`L`) and right (`R`) of the rope from a canopy view. Those hits
+are stored in the line-intercepts table.
 
 The version 1 files were written by this document. Column names are
 snake case. Numeric gaps are `-9999` and text gaps are `NA`. Survey
@@ -412,12 +464,13 @@ Clonal codes are `yes` or `no`. `old_plot` is the plot number before
 renumbering.
 
 Field records were kept in six Google Sheets workbooks (Ross01, Ross01b,
-Ross01c, Bio02, Bio03, Bio04) and downloaded on 2024-11-04.
-`workflow/plot_data_compile_xlsx.R` stacked the SiteData tabs and the
-plot tabs, and rebuilt the plot and quadrant identifiers. Swartberg plot
-numbers that collided with numbers used at other sites were renumbered.
-The previous number is `old_plot`. The source script maps Swartberg 20
-to T110, 22 to T012, 23 to T013, and 24 to T014.
+Ross01c, Bio02, Bio03, Bio04). The v20261007 compile was built from
+workbook downloads dated 2026-10-07. `workflow/plot_data_compile_xlsx.R`
+stacked the SiteData tabs, plot tabs, and line-intercept tabs, and
+rebuilt the plot and quadrant identifiers. Swartberg plot numbers that
+collided with numbers used at other sites were renumbered. The previous
+number is `old_plot`. The source script maps Swartberg 20 to T110, 22 to
+T012, 23 to T013, and 24 to T014.
 
 Plot summary cover, height, and soil depth are the mean of the four
 quadrants. Plot species live and dead cover are the sum of that taxon’s
@@ -447,7 +500,7 @@ Africa, 2022–2023. ORNL DAAC, Oak Ridge, Tennessee, USA.
 
 ## Dataset revisions
 
-This release is compiled from v20241104 vegetation tables and the
+This release is compiled from v20261007 vegetation tables and the
 v20261002 spatial GeoPackage from the team GitHub repository. It was
-updated to conform to ORNL data standards as v20261002. This is the
+updated to conform to ORNL data standards as v20261007. This is the
 first submission of these tables to ORNL DAAC. There is no prior DOI.
