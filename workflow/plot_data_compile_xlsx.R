@@ -25,7 +25,6 @@ registerDoParallel()
 if (Sys.getenv("USER") == "jasper") {gmail = "jasper.slingsby@uct.ac.za"}
 if (Sys.getenv("USER") == "adam") {gmail = "adamw@buffalo.edu"}
 
-
 ################################
 ### Download plot location data
 ################################
@@ -74,9 +73,6 @@ drive_download(sheet_urls[i,2], path = paste0("data/", Sys.Date(), sheet_urls[i,
 
 # Loop through sheets and assemble data
 alldata <- foreach(i=1:nrow(sheet_urls)) %do% {
-
-    # sheet_name=sheet_urls$sheet[i]
-    # sheet_url=sheet_urls$url[i]
     
 # For each excel workbook file as downloaded above
 sheet <- paste0("data/", Sys.Date(), sheet_urls[i,1], ".xlsx")
@@ -84,25 +80,20 @@ sheet <- paste0("data/", Sys.Date(), sheet_urls[i,1], ".xlsx")
 # List names of all sheet tabs
 sheets = excel_sheets(sheet)
 
-  #Check
-  #if(F) find_dups=read_sheet(sheet,"SiteData") %>% distinct(SiteCode_Plot) %>% arrange() %>% View()
-
 # Read in site data (one sheet/tab for each workbook)
 sitesheet=read_xlsx(sheet,"SiteData") %>% 
   mutate(sheet_name=sheet,
          Plot=as.numeric(sub("T","",Plot))) %>%
   filter(! Plot %in% c(275, 194, 139, 51, 53))
 
-
 # Read in quadrat data (multiple sheets/tabs for each workbook)
-# Filter sheet names using grep to identify only plot and drop template sheets
+# Filter sheet names using grep to identify only plot and drop template and "bad" plots sheets
 plot_sheets <- sheets[grepl("plot", sheets,ignore.case = T) & !grepl("Template_Plot|Template_plot|Example_plot", sheets) & 
-                      #  !grepl("Swartberg_20_plot",sheets) & #swartberg 20 is empty - deleted from GoogleSheets
-                        !grepl("Gardenroute_T275_plot",sheets) & #Adam Labuschagne's "dodgy" plots
-                        !grepl("Gardenroute_T139_plot",sheets) & #Adam Labuschagne's "dodgy" plots
-                        !grepl("Gardenroute_T051_plot",sheets) & #Adam Labuschagne's "dodgy" plots
-                        !grepl("Gardenroute_T053_plot",sheets) & #Adam Labuschagne's "dodgy" plots
-                        !grepl("Hawequas_194 Plot",sheets) & #Adam Labuschagne's "dodgy" plots
+                        !grepl("Gardenroute_T275_plot",sheets) & #"bad" plots
+                        !grepl("Gardenroute_T139_plot",sheets) & #"bad" plots
+                        !grepl("Gardenroute_T051_plot",sheets) & #"bad" plots
+                        !grepl("Gardenroute_T053_plot",sheets) & #"bad" plots
+                        !grepl("Hawequas_194 Plot",sheets) & #"bad" plots
                         !grepl("test",sheets)
                       ] 
 
@@ -111,9 +102,6 @@ plot_sheets <- sheets[grepl("plot", sheets,ignore.case = T) & !grepl("Template_P
 data_downloaded <- lapply(plot_sheets, 
     function(tab) {
     read_xlsx(sheet,tab) %>% 
-    #select(-SeasonallyApparent,  #drop field causing problems - now fixed
-    #       -NewSpecies,
-    #       -MeanCanopyDiameter_cm) %>% 
     mutate(SiteCode_Plot_Quadrant = as.character(SiteCode_Plot_Quadrant)) %>%
     filter(!is.na(SiteCode_Plot_Quadrant)) %>%
     mutate(NameCheck = as.character(NameCheck)) %>%
@@ -130,14 +118,13 @@ data <- data_downloaded %>%
 
 # Get line intercept data (multiple sheets/tabs for each workbook)
 # Filter sheet names using grep to identify only plot and drop template sheets
-lineint_sheets <- sheets[grepl("lineintercept|LineIntercept|lineIntercept|Lineintercept", sheets,ignore.case = T) & 
+lineint_sheets <- sheets[grepl("lineintercept|LineIntercept|lineIntercept|Lineintercept|LineInt", sheets,ignore.case = T) & 
                         !grepl("Template_LineIntercept|Template_lineintercept|Example", sheets) & 
-                        #  !grepl("Swartberg_20_plot",sheets) & #swartberg 20 is empty - deleted from GoogleSheets
-                        !grepl("Gardenroute_T275_lineintercept",sheets) & #Adam Labuschagne's "dodgy" plots
-                        !grepl("Gardenroute_T139_lineintercept",sheets) & #Adam Labuschagne's "dodgy" plots
-                        !grepl("Gardenroute_T051_lineintercept",sheets) & #Adam Labuschagne's "dodgy" plots
-                        !grepl("Gardenroute_T053_lineintercept",sheets) & #Adam Labuschagne's "dodgy" plots
-                        !grepl("Hawequas_194 LineIntercept",sheets) & #Adam Labuschagne's "dodgy" plots
+                        !grepl("Gardenroute_T275_lineintercept",sheets) & #"bad" plots
+                        !grepl("Gardenroute_T139_lineintercept",sheets) & #"bad" plots
+                        !grepl("Gardenroute_T051_lineintercept",sheets) & #"bad" plots
+                        !grepl("Gardenroute_T053_lineintercept",sheets) & #"bad" plots
+                        !grepl("Hawequas_194 LineIntercept",sheets) & #"bad" plots
                         !grepl("test",sheets)
 ] 
 
@@ -145,17 +132,12 @@ lineint_sheets <- sheets[grepl("lineintercept|LineIntercept|lineIntercept|Linein
 # Apply filters, data format changes, etc as necessary
 li_data_downloaded <- lapply(lineint_sheets, 
                           function(tab) {
-                            read_xlsx(sheet,tab) %>% #, range = cell_rows(c(1, 3:46))) %>% # Skip second row and read up to 46 rows to avoid empty extras
-                              #select(-SeasonallyApparent,  #drop field causing problems - now fixed
-                              #       -NewSpecies,
-                              #       -MeanCanopyDiameter_cm) %>% 
+                            read_xlsx(sheet,tab) %>%
                               mutate(SiteCode_Plot_LineTransect = as.character(SiteCode_Plot_LineTransect)) %>%
                               rename(any_of(c(SiteCode_Plot = "6.0"))) %>%
                               filter(!is.na(SiteCode_Plot)) %>%
                               mutate(NameCheck = as.character(NameCheck))  %>%
                               mutate(Comments = as.character(Comments)) 
-                           #  mutate(NewSpecies = as.character(NewSpecies)) %>%
-                           #  mutate(SeasonallyApparent = as.character(SeasonallyApparent))
                           })
 
 # merge line intercept data from list of multiple sheets into one dataframe (for this workbook)
@@ -164,43 +146,22 @@ li_data <- li_data_downloaded %>%
   separate(SiteCode_Plot_LineTransect,into=c("SiteCode","Plot","LineTransect"),sep="_",remove = F) %>% 
   mutate(Plot=as.numeric(sub("T","",Plot)))  
 
-###HERE###
-
-# #Checks by sheet
-# li_data |> filter(NameCheck == "#N/A" & !is.na(Genus_Species_Combo)) |> View() # Check taxonomy - IDs to genus only, a few Phylica that were not in the accepted name list for some reason, a moss, and a few new or indet species
-# li_data |> filter(is.na(OtherCoverType) & is.na(Genus_Species_Combo)) |> View() # Check that all OtherCoverType = NA can be set to "LivePlant"
-# sum(!summary(as.factor(li_data$SiteCode_Plot_LineTransect)) == 22) # Check that there are 22 obs per line transect
-# which(!summary(as.factor(li_data$SiteCode_Plot_LineTransect)) == 22) #Had to separate into two sections for Doug's sheet (Bio4)
-# sum(!summary(as.factor(li_data$SiteCode_Plot)) == 44) # Check that there are 44 obs per plot (i.e. both line transects) - probably redundant
-# which(!summary(as.factor(li_data$SiteCode_Plot)) == 44)
-# sum(!summary(as.factor(li_data$MetresAlongLine)) == 2*length(unique(li_data$Plot))) # Check that no intercept points were missed
-# which(!summary(as.factor(li_data$MetresAlongLine)) == 2*length(unique(li_data$Plot)))
-
-# Need to deal with "CapePeninsula_96" - test plot. Check if we should delete/ignore?
-# Did Doug do all his line intercepts in one sheet??
-
 list(sites=sitesheet,quaddata=data,linedata=li_data)
-
 }
 
 
 ################################
-### Combine site and quads lists into dataframes
+### Combine site, quads and line intercept lists into dataframes
 ################################
 
 # Use map to extract and combine specific elements from the inner lists
 sites <- map(alldata, function(x) x["sites"][[1]] %>% 
-              mutate(PostFireAge_years = as.character(PostFireAge_years))#,
-                #VegHeight_cm = as.character(VegHeight_cm),
-                #Date = as.character(Date))
-            ) %>%   # convert problem column to character due to varying inputs     #NEED FIX
+              mutate(PostFireAge_years = as.character(PostFireAge_years))) %>%   # convert problem column to character due to varying inputs
   bind_rows() %>%
   mutate(across(starts_with("Site"), tolower)) %>%
   filter(!is.na(Plot))
 
-
 quads <- map(alldata, function(x) x["quaddata"][[1]]) %>%  
-#               select(-PostFireAge_years)) %>%   # drop problem column due to varying inputs         #NEED FIX
   bind_rows() %>%
   mutate(across(starts_with("Site"), tolower)) %>%
   filter(!is.na(Plot)) %>%
@@ -209,29 +170,25 @@ quads <- map(alldata, function(x) x["quaddata"][[1]]) %>%
          Clonal = as.numeric(case_match(Clonal_YesNo, c("yes","Yes") ~ 1,
                                                     c("no", "No") ~ 0)))
 
-
 linetransects <- map(alldata, function(x) x["linedata"][[1]]) %>%  
   bind_rows() %>%
   mutate(across(starts_with("Site"), tolower))
 
-#Checks within linetransect
-linetransects |> filter(NameCheck == "#N/A" & !is.na(Genus_Species_Combo)) |> View() # Check taxonomy - IDs to genus only, a few Phylica that were not in the accepted name list for some reason, a moss, and a few new or indet species
-linetransects |> filter(is.na(OtherCoverType) & is.na(Genus_Species_Combo)) |> View() # Check that all OtherCoverType = NA can be set to "LivePlant"
-sum(!summary(as.factor(linetransects$SiteCode_Plot_LineTransect)) == 22) # Check that there are 22 obs per line transect
-which(!summary(as.factor(linetransects$SiteCode_Plot_LineTransect)) == 22) #Had to separate into two sections for Doug's sheet (Bio4)
-sum(!summary(as.factor(linetransects$SiteCode_Plot)) == 44) # Check that there are 44 obs per plot (i.e. both line transects) - probably redundant
-which(!summary(as.factor(linetransects$SiteCode_Plot)) == 44)
-sum(!summary(as.factor(linetransects$MetresAlongLine)) == 2*length(unique(linetransects$Plot))) # Check that no intercept points were missed
-which(!summary(as.factor(linetransects$MetresAlongLine)) == 2*length(unique(linetransects$Plot)))
-
-
-#Checks between dataframes
-sort(unique(quads$SiteCode_Plot)[-which(unique(quads$SiteCode_Plot) %in% unique(linetransects$SiteCode_Plot))])
-sort(unique(linetransects$SiteCode_Plot)[-which(unique(linetransects$SiteCode_Plot) %in% unique(quads$SiteCode_Plot))])
-
 ################################
-### Species names check
+### Data checks
 ################################
+
+# some EDA within linetransect
+if(F){ 
+  linetransects |> filter(NameCheck == "#N/A" & !is.na(Genus_Species_Combo)) |> View() # Check taxonomy - IDs to genus only, a few Phylica that were not in the accepted name list for some reason, a moss, and a few new or indet species
+  linetransects |> filter(is.na(OtherCoverType) & is.na(Genus_Species_Combo)) |> View() # Check that all OtherCoverType = NA can be set to "LivePlant"
+  sum(!summary(as.factor(linetransects$SiteCode_Plot_LineTransect)) == 22) # Check that there are 22 obs per line transect
+  which(!summary(as.factor(linetransects$SiteCode_Plot_LineTransect)) == 22) #Had to separate into two sections for Doug's sheet (Bio4)
+  sum(!summary(as.factor(linetransects$SiteCode_Plot)) == 44) # Check that there are 44 obs per plot (i.e. both line transects) - probably redundant
+  which(!summary(as.factor(linetransects$SiteCode_Plot)) == 44)
+  sum(!summary(as.factor(linetransects$MetresAlongLine)) == 2*length(unique(linetransects$Plot))) # Check that no intercept points were missed
+  which(!summary(as.factor(linetransects$MetresAlongLine)) == 2*length(unique(linetransects$Plot)))
+}
 
 # pull out incorrect genus or species or combo for botanists to check...
 accnames=read_xlsx(sheet,"AcceptedSpecies")
@@ -255,9 +212,8 @@ hmm <- quads %>%
   "Phylica rigidifolia")) %>%
   unique() #
 
-hmm %>% View() #There will be a bunch...
+#hmm %>% View() #There will be a bunch...
   #write_sheet(ss = "https://docs.google.com/spreadsheets/d/1xfCWp8bhqz_HRFBjAlUFV6I_kFpGpUB4UleeOQz5bhw/edit#gid=0", sheet = as.character(Sys.Date()))
-
 
 # some EDA - unmatched taxonomy, number of plots, number of species
 if(F){  
@@ -283,7 +239,6 @@ numchange = points %>%
   mutate(old_plotnum=as.numeric(unlist(regmatches(old_plot, gregexpr("[0-9]+\\.?[0-9]*", old_plot))))) %>% 
   filter(plotnum!=old_plotnum) 
 
-
 # EDA on plot renumbering
 if(F){ 
 sites %>% 
@@ -297,7 +252,6 @@ s1
 
 sites %>% filter(Plot%in%s1) %>% select(SiteCode, Plot) %>%  distinct() %>%  arrange(Plot)
 }
-
 
 # update specific plot numbers to the new scheme
 sites2 <- sites %>% 
@@ -315,11 +269,7 @@ sites2 <- sites %>%
   SiteCode_Plot_Quadrant = paste(SiteCode,Plot,Quadrant,sep="_"),
   ) %>% 
   select(Plot,SiteCode,SiteCode_Plot,SiteCode_Plot_Quadrant,Quadrant,everything()) %>% 
-  arrange(Plot,Quadrant)# %>% 
-  #select(old_plot,Plot,Plot2,SiteCode_Plot_Quadrant)
-  #select(SiteCode,Plot,SiteCode_Plot,Quadrant,SiteCode_Plot_Quadrant,geom) %>% 
-  #st_as_sf()
-
+  arrange(Plot,Quadrant)
 
 # update quad plot numbers to the new scheme
 quads2 <- quads %>% 
@@ -339,36 +289,58 @@ quads2 <- quads %>%
   select(Plot,SiteCode,SiteCode_Plot,SiteCode_Plot_Quadrant,Quadrant,everything()) %>% 
   arrange(Plot,Quadrant)
 
+# update line intercept numbers to the new scheme
+linetransects2 <- linetransects %>% 
+  mutate(old_plot=Plot) %>% 
+  select(-Plot) %>% 
+  mutate(Plot=case_when(  #update plot numbers
+    #old_plot==20&grepl("swartberg",SiteCode,ignore.case=T) ~ 110, #Empty plot - deleted from GoogleSheets
+    old_plot==22&grepl("swartberg",SiteCode,ignore.case=T) ~ 12,
+    old_plot==23&grepl("swartberg",SiteCode,ignore.case=T) ~ 13,
+    old_plot==24&grepl("swartberg",SiteCode,ignore.case=T) ~ 14,
+    TRUE ~ old_plot
+  ),
+  Plot=paste0("T",sprintf("%03d", Plot)),
+  SiteCode_Plot = paste(SiteCode,Plot,sep="_"),
+  SiteCode_Plot_LineTransect = paste(SiteCode,Plot,LineTransect,sep="_"),
+  ) %>% 
+  select(Plot,SiteCode,SiteCode_Plot,SiteCode_Plot_LineTransect,LineTransect,everything()) %>% 
+  arrange(Plot,LineTransect)
 
 ################################
 ### CheckSums
 ################################
 
 if(F){ # EDA
-  # confirm all plots match in site and quad data
+  # confirm all plots match in site, quad and linetransect data
   complete_sites=unique(sites2$Plot) %>% sort()
   complete_quadsites=unique(quads2$Plot) %>% sort()
+  complete_transects=unique(linetransects2$Plot) %>% sort()
   complete_sites[!complete_sites%in%complete_quadsites]
   complete_quadsites[!complete_quadsites%in%complete_sites]
-
+  complete_sites[!complete_sites%in%complete_transects]
+  complete_quadsites[!complete_quadsites%in%complete_transects]
+  complete_transects[!complete_transects%in%complete_quadsites]
+  complete_transects[!complete_transects%in%complete_sites]
+  
   checkq="T009"  
   filter(points,plot==checkq)
   filter(quads2,old_plot==9)#Plot==checkq)
   
   table(sites2$Plot%in%quads2$Plot) # Are all site names in the quadrat data? Should be TRUE
   table(quads2$Plot%in%sites2$Plot) # Are all quadrat names in the site data? Should be TRUE
+  table(sites2$Plot%in%linetransects2$Plot) # Are all site names in the transect data? Should be TRUE, but FALSE for 4 (capepoint_86 missing)
+  table(quads2$Plot%in%linetransects2$Plot) # Are all site names in the transect data? Should be TRUE, but FALSE for some (capepoint_86 missing)
+  table(linetransects2$Plot%in%quads2$Plot) # Are all site names in the quadrat data? Should be TRUE
+  table(linetransects2$Plot%in%sites2$Plot) # Are all site names in the quadrat data? Should be TRUE
   
   sum(duplicated(sites2$SiteCode_Plot_Quadrant)) # Find plots that were sampled by multiple botanists...
   sites2[which(duplicated(sites2$SiteCode_Plot_Quadrant)),] %>% View()
 }
-# quads2 %>% mutate(plotnum=as.numeric(sub("T","",Plot))) %>% filter(plotnum!=old_plot) %>% select(SiteCode_Plot_Quadrant,Plot,plotnum, old_plot)
 
-################################
-### Other data checks
-################################
+# Some visual checks for curiosity...
 
 ## Does the sum of the dominant species covers (from quads) correlate with the total estimated veg cover (from sites)? Label plots by Plot number.
-
 quads2 %>% group_by(Plot, Quadrant) %>% summarise(cover=sum(PercentCoverAlive)) %>% 
   left_join(sites2 %>% select(Plot,Quadrant,PercentLiveVegetation)) %>% 
   group_by(Plot) %>% summarise(cover=mean(cover), veg=mean(PercentLiveVegetation)) %>%
@@ -377,36 +349,21 @@ quads2 %>% group_by(Plot, Quadrant) %>% summarise(cover=sum(PercentCoverAlive)) 
   geom_abline() + 
   geom_text()
 
-## Does the square of the mean diameter multiplied by the abundance correlate with the cover? Label plots by Plot number.
-
+## Does the square of half the mean diameter multiplied by pi and the abundance correlate with the cover? Label plots by Plot number.
 quads2 %>% mutate(area = AbundanceAlive_count*pi*(MeanCanopyDiameter_cm/2)^2) %>%
   ggplot(aes(x=PercentCoverAlive,y=area, label = Plot)) + 
   geom_point() + 
   geom_abline() + 
   geom_text()
   
-quads2 %>% mutate(perc_area = (AbundanceAlive_count*pi*(MeanCanopyDiameter_cm/2)^2)/7854) %>%
+quads2 %>% mutate(perc_area = (AbundanceAlive_count*pi*(MeanCanopyDiameter_cm/2)^2)/(n_distinct(Plot)*pi*5^2)) %>%
   group_by(Plot, Quadrant) %>% summarise(perc_area=sum(perc_area)) %>% 
   left_join(sites2 %>% select(Plot,Quadrant,PercentLiveVegetation)) %>% 
   group_by(Plot) %>% summarise(veg=mean(PercentLiveVegetation), perc_area=sum(perc_area)) %>%
-  filter(!Plot == "T149") %>%
   ggplot(aes(x=veg,y=perc_area, label = Plot)) + 
   geom_point() + 
   geom_abline() + 
   geom_text()
-  
-  
-  
-# quads2 %>% group_by(Plot, Taxon) %>% 
-#   summarise(diam=mean(MeanCanopyDiameter_cm),abund=sum(AbundanceAlive_count)) %>% 
-#   mutate(area = abund*pi()*(diam/2)^2) %>%
-#   left_join(sites2 %>% select(Plot,Quadrant,PercentLiveVegetation)) %>% 
-#   group_by(Plot) %>% summarise(diam=mean(diam),abund=mean(abund), veg=mean(PercentLiveVegetation)) %>%
-#   ggplot(aes(x=diam*abund,y=veg, label = Plot)) + 
-#   geom_point() + 
-#   geom_abline() + 
-#   geom_text()
-
 
 ################################
 ### Write files
@@ -415,13 +372,11 @@ quads2 %>% mutate(perc_area = (AbundanceAlive_count*pi*(MeanCanopyDiameter_cm/2)
 # date tag for filenames and the release
 tag=paste0("v",gsub("-","",lubridate::today()))
 
-
 # write site data at quad level
 f_quadrat_summary=file.path("output",paste0("bioscape_veg_quadrat_summary_",tag,".csv"))
 
 sites2 %>% 
   write_csv(f_quadrat_summary)
-
 
 # write site data at site level (currently with old spatial data)
 f_plot_summary=file.path("output",paste0("bioscape_veg_plot_summary_",tag,".csv"))
@@ -441,14 +396,12 @@ sites2 %>%
 #  left_join(select(points,Plot=plot,nearest_reserve,geom)) 
   write_csv(f_plot_summary)
 
-
 # write species data at quadrat level
 f_quadrat_species=file.path("output",paste0("bioscape_veg_quadrat_species_",tag,".csv"))
 
 quads2 %>% 
   arrange(Plot) %>% 
   write_csv(f_quadrat_species)
-
 
 # write species data summarised to site level - "Dominant Summary" -  mean cover, etc. for each plot
 f_plot_species=file.path("output",paste0("bioscape_veg_plot_species_",tag,".csv"))
@@ -466,12 +419,11 @@ quads2 %>%
   arrange(Plot,desc(PercentCoverAlive)) %>% 
   write_csv(f_plot_species)
 
+# write line transect data
+f_linetransect=file.path("output",paste0("bioscape_lineintercept_",tag,".csv"))
 
-################################
-### Write site data in other spatial formats?
-################################
-# geopackage of plot data
-# kml of plot data
+linetransects2 %>% 
+  write_csv(f_linetransect)
 
 
 ################################
@@ -501,33 +453,8 @@ pb_upload(file = f_plot_species,
           repo="BioSCape-io/BioSCape-terrestrial",
           tag=tag)
 
-# 
-#  pb_upload(file = file.path("data",gpkgfile),
-#            repo="BioSCape-io/BioSCape-terrestrial",
-#            tag=tag)
-# 
-#  pb_upload(file = file.path("data",gpkgfile),
-#            repo="BioSCape-io/BioSCape-terrestrial",
-#            tag=tag)
-#  
-#OLD STUFF BELOW
-##################################
+pb_upload(file = f_linetransect,
+          repo="BioSCape-io/BioSCape-terrestrial",
+          tag=tag)
 
-
-
-#########  Update plot locations with current status
-# download plot polygons that were manually uploaded to github releases
-
-# plot_filename=paste0("bioscape_plotpolygons_",tag,".gpkg")
-# pb_download(file = plot_filename,
-#           repo="BioSCape-io/BioSCape-terrestrial",
-#           tag=tag,dest = "data")
-# 
-# homogeneous_areas=st_read(file.path("data",plot_filename),layer = "homogeneous_areas" )
-# 
-# allplots=st_read(file.path("data",gpkgfile)) %>%
-#   mutate(sampled_site=old_plot%in%sites$Plot, #identify which have site data
-#          sampled_cover=old_plot%in%data$Plot,
-#          sampled_homogeneous=old_plot%in%homogeneous_areas$plot) #identify which have cover data
-# 
 
