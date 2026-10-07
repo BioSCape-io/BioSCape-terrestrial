@@ -181,7 +181,7 @@ ul.task-list li input[type="checkbox"] {
 <section id="introduction" class="level2">
 <h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
 <p><strong>Dataset title:</strong> BioSCape Vegetation Plots, Cape Floristic Region, South Africa, 2023</p>
-<p><strong>Summary:</strong> Vegetation composition and cover at 189 field plots in the Greater Cape Floristic Region of South Africa, collected for the Biodiversity Survey of the Cape (BioSCape). Each plot was surveyed once between 2023-05-03 and 2023-11-01 and divided into four quadrants (NE, NW, SE, SW). The product reports quadrant-level and plot-level fractional cover of bare soil, bare rock, dead vegetation, and live vegetation, together with species-level percent cover, stem counts, and canopy diameter for 709 species. All species with at least 5% cover were included in the dataset, plus additional species where needed to make up 80% of the total cover. The data were collected in the field by botanists. Plot-center coordinates are in the companion spatial file.</p>
+<p><strong>Summary:</strong> Vegetation composition and cover at 189 field plots in the Greater Cape Floristic Region of South Africa, collected for the Biodiversity Survey of the Cape (BioSCape). Each plot was surveyed once between 2023-05-03 and 2023-11-01 and divided into four quadrants (NE, NW, SE, SW). The product reports quadrant-level and plot-level fractional cover of bare soil, bare rock, dead vegetation, and live vegetation, together with species-level percent cover, stem counts, and canopy diameter for 709 species. Line-intercept hits along the north–south and west–east plot diameters are also included. All species with at least 5% cover were included in the dataset, plus additional species where needed to make up 80% of the total cover. The data were collected in the field by botanists. Plot-center coordinates are in the companion spatial file.</p>
 </section>
 <section id="dataset-overview" class="level2">
 <h2 class="anchored" data-anchor-id="dataset-overview">Dataset overview</h2>
@@ -197,11 +197,11 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="dataset-characteristics" class="level2">
 <h2 class="anchored" data-anchor-id="dataset-characteristics">Dataset characteristics</h2>
-<p><strong>Spatial coverage:</strong> Greater Cape Floristic Region, Western Cape and Eastern Cape, South Africa. Site codes in the plot summary: agulhas, anysberg, bainskloof, bavianskloof, bontebok, capepoint, cederberg, dehoop, franschoekpass, gardenroute, grootbos, grootwinterhoek, Hawequas, houwhoekpass, kogelberg, langeberg, outeniqua, rooiberg, swartberg, viljoenspass, vrolijkheid, westcoast.</p>
+<p><strong>Spatial coverage:</strong> Greater Cape Floristic Region, Western Cape and Eastern Cape, South Africa. Site codes in the plot summary: agulhas, anysberg, bainskloof, bavianskloof, bontebok, capepoint, cederberg, dehoop, franschoekpass, gardenroute, grootbos, grootwinterhoek, hawequas, houwhoekpass, kogelberg, langeberg, outeniqua, rooiberg, swartberg, viljoenspass, vrolijkheid, westcoast.</p>
 <p><strong>Spatial resolution:</strong> One circular vegetation plot with a diameter of 10m at each location, subdivided into four quadrants.</p>
 <p><strong>Temporal coverage:</strong> 2023-05-03 00:00:00 to 2023-11-01 23:59:59 UTC. <code>date</code> in the quadrat summary is the survey calendar date. Each plot has one date.</p>
 <p><strong>Temporal resolution:</strong> One sample per plot.</p>
-<p><strong>Study area:</strong> Bounding box of the <code>plot_centers</code> layer in bioscape_veg_spatial_v20261002.gpkg, WGS 84 decimal degrees.</p>
+<p><strong>Study area:</strong> Bounding box of the <code>plot_centers</code> layer in bioscape_veg_spatial_v20261007.gpkg, WGS 84 decimal degrees.</p>
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -236,11 +236,12 @@ ul.task-list li input[type="checkbox"] {
 <p><strong>GCMD keywords:</strong> BIOSPHERE &gt; VEGETATION &gt; VEGETATION COVER; BIOSPHERE &gt; VEGETATION &gt; VEGETATION SPECIES; AFRICA &gt; SOUTHERN AFRICA &gt; SOUTH AFRICA; platform FIELD SURVEYS; instrument GPS.</p>
 <section id="file-naming-convention" class="level3">
 <h3 class="anchored" data-anchor-id="file-naming-convention">File naming convention</h3>
-<p><code>bioscape_veg_{level}_{table}_v{YYYYMMDD}.csv</code> and <code>bioscape_veg_spatial_v{YYYYMMDD}.gpkg</code></p>
+<p><code>bioscape_veg_{level}_{table}_v{YYYYMMDD}.csv</code>, <code>bioscape_veg_line_intercepts_v{YYYYMMDD}.csv</code>, and <code>bioscape_veg_spatial_v{YYYYMMDD}.gpkg</code></p>
 <ul>
 <li><code>level</code> is <code>plot</code> or <code>quadrat</code>.</li>
 <li><code>table</code> is <code>summary</code> (one row per location) or <code>species</code> (one row per taxon at that location).</li>
-<li><code>YYYYMMDD</code> is the date these version 1 files were written. This submission is v20261002. The vegetation sources are v20241104 and previously released to the team on GitHub. The spatial source is v20261002. Publication at ORNL is version 1. There is no earlier DOI.</li>
+<li><code>line_intercepts</code> is the point-intercept table along the plot diameters.</li>
+<li><code>YYYYMMDD</code> is the date these version 1 files were written. This submission is v20261007. The vegetation sources are v20261007 and previously released to the team on GitHub. The spatial source is v20261002. Publication at ORNL is version 1. There is no earlier DOI.</li>
 </ul>
 <p>Names use lowercase letters, numbers, and underscores.</p>
 </section>
@@ -266,34 +267,40 @@ ul.task-list li input[type="checkbox"] {
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">bioscape_veg_plot_summary_v20261002.csv</td>
+<td style="text-align: left;">bioscape_veg_plot_summary_v20261007.csv</td>
 <td style="text-align: right;">189</td>
 <td style="text-align: right;">22006</td>
-<td style="text-align: left;">5616bb12963f6ceb35978c0eadc4971296fc40d571ca714e5f52f792d095606e</td>
+<td style="text-align: left;">4005ed742f00b909aa7c7c4a89937cc222a6d48b2718d61e3010c2a4a4aaffc2</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">bioscape_veg_plot_species_v20261002.csv</td>
+<td style="text-align: left;">bioscape_veg_plot_species_v20261007.csv</td>
 <td style="text-align: right;">1974</td>
-<td style="text-align: right;">207912</td>
-<td style="text-align: left;">63d79b3112a0ff0a4e88f46dd8d5b4487d94ba9b60e463fd06b015155e7abba2</td>
+<td style="text-align: right;">207902</td>
+<td style="text-align: left;">f3b4f453fbc9dd53f48b1e23d3735e04fb3725801e6cb6747d6f88c7404599ea</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">bioscape_veg_quadrat_summary_v20261002.csv</td>
+<td style="text-align: left;">bioscape_veg_quadrat_summary_v20261007.csv</td>
 <td style="text-align: right;">756</td>
-<td style="text-align: right;">162301</td>
-<td style="text-align: left;">8269543d656dcbe0716e113c6fb301dd51fe97b969bd39444ede21d653583b01</td>
+<td style="text-align: right;">162269</td>
+<td style="text-align: left;">98c2d1b63deb05e4533f405b6e93a291e5ea84f5137e1ca7a5fa3c00516da1e7</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">bioscape_veg_quadrat_species_v20261002.csv</td>
+<td style="text-align: left;">bioscape_veg_quadrat_species_v20261007.csv</td>
 <td style="text-align: right;">4795</td>
-<td style="text-align: right;">768295</td>
-<td style="text-align: left;">81fc2914fb2bbb0372805af93cbb50755911d55b97bb678161ea597a38db1357</td>
+<td style="text-align: right;">781188</td>
+<td style="text-align: left;">67f1cc3395fbd2a6bcfdab245821592a31759f603dad9632c548cf8606ea8ae3</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">bioscape_veg_spatial_v20261002.gpkg</td>
+<td style="text-align: left;">bioscape_veg_line_intercepts_v20261007.csv</td>
+<td style="text-align: right;">8316</td>
+<td style="text-align: right;">938734</td>
+<td style="text-align: left;">0f14f16b252b6d3f0d85a08c88011348c384f0255e8d63001a4ba1bf99631b0c</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">bioscape_veg_spatial_v20261007.gpkg</td>
 <td style="text-align: right;">499</td>
 <td style="text-align: right;">2191360</td>
-<td style="text-align: left;">ab5696b3c9a0c81c7ebd619de5ece936c6e7dfcd4d4e7442e7191801c046320c</td>
+<td style="text-align: left;">ae8e237c87012aa1bd5d279da367c968f624b2984af7d7448c121d56111f3c72</td>
 </tr>
 </tbody>
 </table>
@@ -304,8 +311,9 @@ ul.task-list li input[type="checkbox"] {
 <li><strong>Plot species</strong> (1974 rows). One row per accepted taxon per plot. Live and dead cover are the sum of the quadrant percent covers divided by 4. Counts are sums across quadrants. <code>site_code_plot</code> plus <code>genus_species_combo</code> is unique except where noted in Quality assessment.</li>
 <li><strong>Quadrat summary</strong> (756 rows). One row per quadrant. <code>site_code_plot_quadrant</code> is unique. All 189 plots have NE, NW, SE, and SW.</li>
 <li><strong>Quadrat species</strong> (4795 rows). One row per taxon recorded in a quadrant, after identical rows were dropped. The plot species file is the aggregate of the source table, not of this file after duplicate removal.</li>
+<li><strong>Line intercepts</strong> (8316 rows). One row per intercept hit (a plant or other cover type) at the left or right of each 1 m mark on the north–south (<code>NS</code>) and west–east (<code>WE</code>) diameters. Most plots have 44 hits (22 per transect). Plot T086 has no line-intercept rows. 1 plot has two hits at every mark.</li>
 </ul>
-<p><strong>Spatial file.</strong> bioscape_veg_spatial_v20261002.gpkg is a GeoPackage in WGS 84 (EPSG:4326). Layers are <code>plot_centers</code>, <code>plot_parking</code>, and <code>plot_polygons</code>.</p>
+<p><strong>Spatial file.</strong> bioscape_veg_spatial_v20261007.gpkg is a GeoPackage in WGS 84 (EPSG:4326). Layers are <code>plot_centers</code>, <code>plot_parking</code>, and <code>plot_polygons</code>.</p>
 <ul>
 <li><code>plot_centers</code>, 189 points and 189 plot ids. No plot id is repeated. Center ids absent from the plot summary: none. <code>bioscape_plot_id</code> matches <code>plot</code>.</li>
 <li><code>plot_parking</code>, 122 points where a vehicle was parked for the survey.</li>
@@ -443,19 +451,23 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="data-file-properties" class="level3">
 <h3 class="anchored" data-anchor-id="data-file-properties">Data file properties</h3>
-<p>Tabular CSV, plus one GeoPackage. The four tables have no map projection. bioscape_veg_spatial_v20261002.gpkg uses geographic WGS 84 (EPSG:4326). Processing level: in situ field observations, with accepted names applied at compilation. These are not a satellite Level 2–4 product.</p>
+<p>Tabular CSV, plus one GeoPackage. The five tables have no map projection. bioscape_veg_spatial_v20261007.gpkg uses geographic WGS 84 (EPSG:4326). Processing level: in situ field observations, with accepted names applied at compilation. These are not a satellite Level 2–4 product.</p>
 </section>
 <section id="data-details" class="level3">
 <h3 class="anchored" data-anchor-id="data-details">Data details</h3>
 <p>Shared codes:</p>
 <ul>
 <li><code>quadrant</code>: NE, NW, SE, SW.</li>
+<li><code>line_transect</code>: NS, WE.</li>
+<li><code>metres_along_line</code>: meter mark <code>0</code>–<code>10</code> plus <code>L</code> or <code>R</code> for the left or right side of the transect rope (for example <code>0L</code>, <code>5R</code>).</li>
+<li><code>other_cover_type</code>: Bare soil, Bare rock, Bare soil and rock, Dead plant, or Other.</li>
 <li><code>clonal</code> and <code>clonal_yes_no</code>: <code>yes</code>, <code>no</code>, or <code>NA</code>.</li>
 <li><code>seasonally_apparent</code>: <code>0</code>, <code>1</code>, or <code>-9999</code>.</li>
 <li><code>groundwater</code>: Well-drained, Impeded drainage, Seepage, Swamp, Stream bank, Suurvlakte, or <code>NA</code>.</li>
 <li><code>sampled</code> on the plot summary is <code>1</code> for every row.</li>
+<li><code>inat_id</code>: iNaturalist observation id. Reconstruct the observation page as <code>https://www.inaturalist.org/observations/{inat_id}</code>.</li>
 </ul>
-<p><strong>bioscape_veg_plot_summary_v20261002.csv</strong></p>
+<p><strong>bioscape_veg_plot_summary_v20261007.csv</strong></p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 33%">
@@ -548,7 +560,7 @@ ul.task-list li input[type="checkbox"] {
 </tbody>
 </table>
 <p>This file has no survey date. Take <code>date</code> from the quadrat summary, joining on <code>plot</code>. Field surveys were recorded by Ross Turner, Douglas Euston-Brown, Steven Molteno, Stuart Hall, and Paul Emms.</p>
-<p><strong>bioscape_veg_plot_species_v20261002.csv</strong></p>
+<p><strong>bioscape_veg_plot_species_v20261007.csv</strong></p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 33%">
@@ -640,7 +652,7 @@ ul.task-list li input[type="checkbox"] {
 </tr>
 </tbody>
 </table>
-<p><strong>bioscape_veg_quadrat_summary_v20261002.csv</strong></p>
+<p><strong>bioscape_veg_quadrat_summary_v20261007.csv</strong></p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 33%">
@@ -772,7 +784,7 @@ ul.task-list li input[type="checkbox"] {
 </tr>
 </tbody>
 </table>
-<p><strong>bioscape_veg_quadrat_species_v20261002.csv</strong></p>
+<p><strong>bioscape_veg_quadrat_species_v20261007.csv</strong></p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 33%">
@@ -840,12 +852,12 @@ ul.task-list li input[type="checkbox"] {
 <tr class="odd">
 <td>name_check</td>
 <td></td>
-<td>Name-check code. <code>NA</code> on 167 of 4795 rows.</td>
+<td>Name-check code. <code>NA</code> on 164 of 4795 rows.</td>
 </tr>
 <tr class="even">
 <td>new_species</td>
 <td></td>
-<td>Field note for a new or uncertain taxon. URLs were removed. Remaining values can be notes or times.</td>
+<td>Field note for a new or uncertain taxon. iNaturalist URLs are stored as <code>inat_id</code>. Remaining values can be notes or times.</td>
 </tr>
 <tr class="odd">
 <td>clonal_yes_no</td>
@@ -885,7 +897,7 @@ ul.task-list li input[type="checkbox"] {
 <tr class="even">
 <td>comment</td>
 <td></td>
-<td>Note on the taxon in that quadrant.</td>
+<td>Note on the taxon in that quadrant. iNaturalist URLs are stored as <code>inat_id</code>; other residual text is kept.</td>
 </tr>
 <tr class="odd">
 <td>clonal</td>
@@ -902,13 +914,115 @@ ul.task-list li input[type="checkbox"] {
 <td></td>
 <td>Plot number before Swartberg renumbering. Missing: <code>-9999</code>.</td>
 </tr>
+<tr class="even">
+<td>inat_id</td>
+<td></td>
+<td>iNaturalist observation id extracted from <code>new_species</code> or <code>comment</code>. Missing: <code>NA</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>bioscape_veg_line_intercepts_v20261007.csv</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Variable</th>
+<th>Units</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>record_id</td>
+<td></td>
+<td>Unique row number in this file.</td>
+</tr>
+<tr class="even">
+<td>plot</td>
+<td></td>
+<td>Plot code.</td>
+</tr>
+<tr class="odd">
+<td>site_code</td>
+<td></td>
+<td>Survey area name.</td>
+</tr>
+<tr class="even">
+<td>site_code_plot</td>
+<td></td>
+<td>Site and plot joined by <code>_</code>.</td>
+</tr>
+<tr class="odd">
+<td>site_code_plot_line_transect</td>
+<td></td>
+<td>Site, plot, and transect joined by <code>_</code>.</td>
+</tr>
+<tr class="even">
+<td>line_transect</td>
+<td></td>
+<td>NS or WE.</td>
+</tr>
+<tr class="odd">
+<td>metres_along_line</td>
+<td></td>
+<td>Meter mark and side of the rope, for example <code>0L</code> or <code>10R</code>.</td>
+</tr>
+<tr class="even">
+<td>accepted_genus</td>
+<td></td>
+<td>Accepted genus when the hit is a plant.</td>
+</tr>
+<tr class="odd">
+<td>accepted_species</td>
+<td></td>
+<td>Accepted species epithet. <code>NA</code> when the record is genus only or a non-plant hit.</td>
+</tr>
+<tr class="even">
+<td>subspecies_or_variant</td>
+<td></td>
+<td>Subspecies or variant when one was recorded.</td>
+</tr>
+<tr class="odd">
+<td>genus_species_combo</td>
+<td></td>
+<td>Genus and species label. <code>NA</code> for non-plant hits.</td>
+</tr>
+<tr class="even">
+<td>name_check</td>
+<td></td>
+<td>Name-check code. Missing: <code>NA</code>.</td>
+</tr>
+<tr class="odd">
+<td>other_cover_type</td>
+<td></td>
+<td>Non-plant cover at the intercept when no taxon was recorded, or when both were noted.</td>
+</tr>
+<tr class="even">
+<td>comments</td>
+<td></td>
+<td>Free-text note. iNaturalist URLs are stored as <code>inat_id</code>.</td>
+</tr>
+<tr class="odd">
+<td>old_plot</td>
+<td></td>
+<td>Plot number before Swartberg renumbering. Missing: <code>-9999</code>.</td>
+</tr>
+<tr class="even">
+<td>inat_id</td>
+<td></td>
+<td>iNaturalist observation id extracted from <code>comments</code>. Missing: <code>NA</code>.</td>
+</tr>
 </tbody>
 </table>
 </section>
 </section>
 <section id="application-and-derivation" class="level2">
 <h2 class="anchored" data-anchor-id="application-and-derivation">Application and derivation</h2>
-<p>These plots are the environmentally stratified vegetation surveys for BioSCape. They are the ground observations for comparing field composition and structure with the campaign airborne imaging spectroscopy and lidar (AVIRIS-NG, PRISM, LVIS, and HyTES) over the Greater Cape Floristic Region (Cardoso et al.&nbsp;2025). Use the plot species table for one cover and count per taxon per plot. Use the quadrat tables when the within-plot measurements matter. The woody-invasive plots (ORNL DAAC <a href="https://doi.org/10.3334/ORNLDAAC/2511" class="uri">https://doi.org/10.3334/ORNLDAAC/2511</a>) were sited near this network and are comparable only after that placement difference is taken into account.</p>
+<p>These plots are the environmentally stratified vegetation surveys for BioSCape. They are the ground observations for comparing field composition and structure with the campaign airborne imaging spectroscopy and lidar (AVIRIS-NG, PRISM, LVIS, and HyTES) over the Greater Cape Floristic Region (Cardoso et al.&nbsp;2025). Use the plot species table for one cover and count per taxon per plot. Use the quadrat tables when the within-plot measurements matter. Use the line intercepts table for point hits along the plot diameters. The woody-invasive plots (ORNL DAAC <a href="https://doi.org/10.3334/ORNLDAAC/2511" class="uri">https://doi.org/10.3334/ORNLDAAC/2511</a>) were sited near this network and are comparable only after that placement difference is taken into account.</p>
 </section>
 <section id="quality-assessment" class="level2">
 <h2 class="anchored" data-anchor-id="quality-assessment">Quality assessment</h2>
@@ -985,12 +1099,14 @@ ul.task-list li input[type="checkbox"] {
 </div>
 <p>Version 1 changes from the source tables:</p>
 <ul>
-<li>Site codes on 12 plots in the species tables were replaced with the plot-summary spelling so <code>site_code_plot</code> joins.</li>
+<li>Site codes on 0 plots in the species tables were replaced with the plot-summary spelling so <code>site_code_plot</code> joins.</li>
 <li>1 identical quadrat-species rows were removed.</li>
-<li>1 web address in <code>new_species</code> was removed.</li>
+<li>iNaturalist observation URLs in <code>new_species</code>, <code>comment</code>, and line <code>comments</code> were moved to <code>inat_id</code> (37 quadrat-species rows and 20 line-intercept rows had an iNaturalist URL). Residual free-text notes were kept. Non-iNaturalist URLs were left in place.</li>
+<li>Personal contact details in <code>access_notes</code> were redacted.</li>
 <li>The observer value <code>deb</code> and the spatial botanist name <code>Doug Euston-Brown</code> are stored as Douglas Euston-Brown.</li>
 <li>Spatial source v20261002 drops the duplicate T114 center and its location flag, sets T074 region to <code>CapePoint</code>, links T183 to associated plot <code>pt183</code>, stores <code>pt_plot_d</code> as one column, and uses real missing values instead of the text <code>NA</code> in Townsend plot labels.</li>
 </ul>
+<p>Relative to the earlier <code>v20241104</code> vegetation compile, the v20261007 sources rename T222 <code>Senecio subcanescens</code> to <code>Senecio rigidus</code> and set T091 <code>Metalasia densa</code> live abundance from 20 to 1 (with a note on the inconsistent cover versus count).</p>
 <p>13 quadrat-by-taxon keys still occur more than once because the cover or count differed. <code>record_id</code> keeps those rows distinct. The plot species file was summed from the source table, so those repeated measurements are included in its cover and counts.</p>
 <div class="cell">
 <div class="cell-output-display">
@@ -1072,13 +1188,14 @@ ul.task-list li input[type="checkbox"] {
 </table>
 </div>
 </div>
-<p><code>post_fire_age_years</code> remains text. <code>name_check</code> is the code written on the field sheet; the authority list is not in these tables.</p>
+<p>Line intercepts are present for 188 of 189 plots (missing: T086). Plot T096 has two hits at every transect mark (88 rows). <code>post_fire_age_years</code> remains text. <code>name_check</code> is the code written on the field sheet; the authority list is not in these tables.</p>
 </section>
 <section id="data-acquisition-materials-and-methods" class="level2">
 <h2 class="anchored" data-anchor-id="data-acquisition-materials-and-methods">Data acquisition, materials, and methods</h2>
-<p>Plots were placed across reserves and passes in the Greater Cape Floristic Region for the 2023 BioSCape field campaign (Cardoso et al. 2025). Each surveyed plot has four quadrants: NE, NW, SE, and SW. In each quadrant the botanist recorded fractional cover of bare soil, bare rock, dead vegetation, and live vegetation; vegetation height; soil depth; drainage; and, for each vascular plant taxon, live and dead percent cover, live and dead counts, and canopy diameter. Centers were located with a Trimble GPS. The coordinate values are in the <code>plot_centers</code> layer of bioscape_veg_spatial_v20261002.gpkg.</p>
+<p>Plots were placed across reserves and passes in the Greater Cape Floristic Region for the 2023 BioSCape field campaign (Cardoso et al. 2025). Each surveyed plot has four quadrants: NE, NW, SE, and SW. In each quadrant the botanist recorded fractional cover of bare soil, bare rock, dead vegetation, and live vegetation; vegetation height; soil depth; drainage; and, for each vascular plant taxon, live and dead percent cover, live and dead counts, and canopy diameter. Centers were located with a Trimble GPS. The coordinate values are in the <code>plot_centers</code> layer of bioscape_veg_spatial_v20261007.gpkg.</p>
+<p>Two perpendicular line transects cross at the plot center along the north–south (<code>NS</code>) and west–east (<code>WE</code>) diameters. At each 1 m mark from 0 to 10 m, the botanist recorded the plant or other cover immediately left (<code>L</code>) and right (<code>R</code>) of the rope from a canopy view. Those hits are stored in the line-intercepts table.</p>
 <p>The version 1 files were written by this document. Column names are snake case. Numeric gaps are <code>-9999</code> and text gaps are <code>NA</code>. Survey dates are <code>YYYY-MM-DD</code>. GPS times are <code>YYYY-MM-DDThh:mm:ss</code> with the clock time taken from the source string. Each CSV has <code>record_id</code>. Clonal codes are <code>yes</code> or <code>no</code>. <code>old_plot</code> is the plot number before renumbering.</p>
-<p>Field records were kept in six Google Sheets workbooks (Ross01, Ross01b, Ross01c, Bio02, Bio03, Bio04) and downloaded on 2024-11-04. <code>workflow/plot_data_compile_xlsx.R</code> stacked the SiteData tabs and the plot tabs, and rebuilt the plot and quadrant identifiers. Swartberg plot numbers that collided with numbers used at other sites were renumbered. The previous number is <code>old_plot</code>. The source script maps Swartberg 20 to T110, 22 to T012, 23 to T013, and 24 to T014.</p>
+<p>Field records were kept in six Google Sheets workbooks (Ross01, Ross01b, Ross01c, Bio02, Bio03, Bio04). The v20261007 compile was built from workbook downloads dated 2026-10-07. <code>workflow/plot_data_compile_xlsx.R</code> stacked the SiteData tabs, plot tabs, and line-intercept tabs, and rebuilt the plot and quadrant identifiers. Swartberg plot numbers that collided with numbers used at other sites were renumbered. The previous number is <code>old_plot</code>. The source script maps Swartberg 20 to T110, 22 to T012, 23 to T013, and 24 to T014.</p>
 <p>Plot summary cover, height, and soil depth are the mean of the four quadrants. Plot species live and dead cover are the sum of that taxon’s quadrant covers divided by 4, and counts are sums. Unrecorded quadrant occurrences add nothing to the sum. With four quadrants in every released plot, dividing by 4 is that taxon’s mean contribution to the plot.</p>
 </section>
 <section id="references" class="level2">
@@ -1089,7 +1206,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="dataset-revisions" class="level2">
 <h2 class="anchored" data-anchor-id="dataset-revisions">Dataset revisions</h2>
-<p>This release is compiled from v20241104 vegetation tables and the v20261002 spatial GeoPackage from the team GitHub repository. It was updated to conform to ORNL data standards as v20261002. This is the first submission of these tables to ORNL DAAC. There is no prior DOI.</p>
+<p>This release is compiled from v20261007 vegetation tables and the v20261002 spatial GeoPackage from the team GitHub repository. It was updated to conform to ORNL data standards as v20261007. This is the first submission of these tables to ORNL DAAC. There is no prior DOI.</p>
 
 
 </section>
