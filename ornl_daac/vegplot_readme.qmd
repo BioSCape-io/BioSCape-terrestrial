@@ -1,6 +1,7 @@
 ---
 title: "BioSCape Vegetation Plots, Cape Floristic Region, South Africa, 2023"
 author:
+  - Adam M. Wilson
   - Jasper Slingsby
   - Ross Turner
   - Douglas Euston-Brown
@@ -13,7 +14,6 @@ author:
   - Anabelle Cardoso
   - Erin Hestir
   - Brian Maitner
-  - Adam M. Wilson
 date: "`r format(Sys.Date(), '%Y-%m-%d')`"
 execute:
   echo: false
